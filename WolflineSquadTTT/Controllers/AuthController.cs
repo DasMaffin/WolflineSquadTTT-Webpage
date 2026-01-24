@@ -1,0 +1,72 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using System.Text;
+using System.Net.Http;
+using Microsoft.AspNetCore.Http;
+
+namespace WolflineSquadTTT.Controllers
+{
+    public class AuthController : Controller
+    {
+        private const string SteamOpenIdEndpoint = "https://steamcommunity.com/openid/login";
+
+        [HttpGet("/auth/steam")]
+        public IActionResult SteamLogin()
+        {
+            var returnUrl = Url.Action("SteamCallback", "Auth", null, Request.Scheme);
+            var realm = $"{Request.Scheme}://{Request.Host}";
+
+            var query = new Dictionary<string, string>
+            {
+                ["openid.ns"] = "http://specs.openid.net/auth/2.0",
+                ["openid.mode"] = "checkid_setup",
+                ["openid.return_to"] = returnUrl,
+                ["openid.realm"] = realm,
+                ["openid.identity"] = "http://specs.openid.net/auth/2.0/identifier_select",
+                ["openid.claimed_id"] = "http://specs.openid.net/auth/2.0/identifier_select"
+            };
+
+            var url = SteamOpenIdEndpoint + "?" + string.Join("&",
+                query.Select(kvp =>
+                    $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
+
+            return Redirect(url);
+        }
+
+        [HttpGet("/auth/steam/callback")]
+        public async Task<IActionResult> SteamCallback()
+        {
+            // Copy all query params
+            var query = Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString());
+
+            // Required validation step
+            query["openid.mode"] = "check_authentication";
+
+            using var client = new HttpClient();
+            var response = await client.PostAsync(
+                SteamOpenIdEndpoint,
+                new FormUrlEncodedContent(query)
+            );
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!body.Contains("is_valid:true"))
+                return Unauthorized("Steam authentication failed");
+
+            // Extract SteamID
+            var claimedId = Request.Query["openid.claimed_id"].ToString();
+            var steamId = claimedId.Split('/').Last();
+
+            // Save session
+            HttpContext.Session.SetString("SteamID", steamId);
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        [HttpGet("/auth/logout")]
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Index", "Home");
+        }
+    }
+}
