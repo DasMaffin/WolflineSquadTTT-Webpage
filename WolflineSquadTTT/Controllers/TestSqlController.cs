@@ -17,11 +17,11 @@ public class TestSqlController : ControllerBase
     {
         await _db.OpenAsync();
 
-        var cmd = new MySqlCommand(
+        MySqlCommand cmd = new MySqlCommand(
             "SELECT NOW() AS serverTime, DATABASE() AS dbName",
             _db);
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        using MySqlDataReader reader = await cmd.ExecuteReaderAsync();
 
         if (!reader.Read())
             return new { ok = false };

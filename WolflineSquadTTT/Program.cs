@@ -1,6 +1,6 @@
 using MySqlConnector;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 string? connStr;
 
@@ -14,13 +14,13 @@ else
 }
 
 // Add services to the container.
-builder.Services.AddControllersWithViews(); 
+builder.Services.AddControllersWithViews();
 builder.Services.AddSession();
-builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpContextAccessor(); 
 builder.Services.AddTransient<MySqlConnection>(_ =>
     new MySqlConnection(connStr));
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

@@ -6,8 +6,15 @@ namespace WolflineSquadTTT.Controllers
 {
     public class HomeController : Controller
     {
+        private readonly IWebHostEnvironment _env;
+        public HomeController(IWebHostEnvironment env)
+        {
+            _env = env;
+        }
+
         public IActionResult Index()
         {
+            ViewData["Environment"] = _env.EnvironmentName;
             return View();
         }
 
