@@ -1,13 +1,24 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
+
+string? connStr;
+
+if (builder.Environment.IsDevelopment())
+{
+    connStr = builder.Configuration.GetConnectionString("DevDb");
+}
+else
+{
+    connStr = builder.Configuration.GetConnectionString("ProdDb");
+}
 
 // Add services to the container.
 builder.Services.AddControllersWithViews(); 
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<MySqlConnection>(_ =>
+    new MySqlConnection(connStr));
 
 var app = builder.Build();
 
