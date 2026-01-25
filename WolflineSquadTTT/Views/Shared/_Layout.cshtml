@@ -26,27 +26,21 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Gdpr">GDPR</a>
-                        </li>
-                        <li class="nav-item">
-                            @if (HttpContextAccessor.HttpContext.Session.GetString("SteamID") == null)
-                            {
-                                <a href="/auth/steam" class="steam-login-button">
-                                    <img src="/images/steam/sits_01.png" alt="Login with Steam" height="24">
-                                </a>
-                            }
-                            else
-                            {
-                                <a href="/auth/logout" class="steam-login-button">
-                                    <button>Log out</button>
-                                </a>
-                            }
-                            </li>
                     </ul>
+                    <div class="ms-auto">
+                        @if (HttpContextAccessor?.HttpContext?.Session.GetString("SteamID") == null)
+                        {
+                            <a href="/auth/steam" class="steam-login-button">
+                                <img src="/images/steam/sits_01.png" alt="Login with Steam" height="24">
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="/auth/logout" class="btn btn-outline-danger btn-sm ms-2">
+                                Log out
+                            </a>
+                        }
+                    </div>
                 </div>
             </div>
         </nav>
@@ -59,7 +53,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2026 - WolflineSquadTTT - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2026 - WolflineSquadTTT - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a> - <a asp-area="" asp-controller="Home" asp-action="Gdpr">GDPR</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

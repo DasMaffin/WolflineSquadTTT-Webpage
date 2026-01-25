@@ -17,8 +17,8 @@ namespace WolflineSquadTTT.Controllers
             return View();
         }
 
-        [Route("GDPR")]
         [Route("Home/Gdpr")]
+        [Route("GDPR")]
         public IActionResult Gdpr()
         {
             return View();
