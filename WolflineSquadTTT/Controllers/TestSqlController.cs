@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WolflineSquadTTT;
+using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
+using WolflineSquadTTT.Models.Enums;
 using WolflineSquadTTT.Services;
 
 [ApiController]
@@ -31,13 +33,10 @@ public class TestSqlController : ControllerBase
     }
 
     [Route("GetRights")]
+    [RequiresPermission(Permission.SuperAdministrator)]
     public async Task<object> GetRights()
     {
         string steamID = HttpContext.Session.GetString("SteamID") ?? "";
-        if (steamID == null)
-        {
-            return RedirectToAction("Index", "Home");
-        }
 
         List<UserRight> userRights = await _userRightService.GetUserRightsAsync(steamID);
 

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using WolflineSquadTTT.Models;
 using WolflineSquadTTT.Services;
 
@@ -9,10 +10,12 @@ namespace WolflineSquadTTT.Controllers
         private const string SteamOpenIdEndpoint = "https://steamcommunity.com/openid/login";
 
         private readonly IUserService _userService;
+        private readonly IUserRightService _userRightService;
 
-        public AuthController(IUserService userService)
+        public AuthController(IUserService userService, IUserRightService userRightService)
         {
             _userService = userService;
+            _userRightService = userRightService;
         }
 
         [HttpGet("/auth/steam")]
@@ -65,7 +68,12 @@ namespace WolflineSquadTTT.Controllers
             // Save session
             HttpContext.Session.SetString("SteamID", steamId);
 
-            User user = await _userService.CreateNewBySteamIdAsync(steamId);
+            List<UserRight> rights = await _userRightService.GetUserRightsAsync(steamId);
+
+            HttpContext.Session.SetString(
+                "UserRights",
+                JsonSerializer.Serialize(rights.Select(r => r.Right).ToList())
+            );
 
             return RedirectToAction("Index", "Home");
         }
