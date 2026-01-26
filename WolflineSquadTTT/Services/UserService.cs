@@ -7,6 +7,7 @@ namespace WolflineSquadTTT.Services
     {
         Task<User> GetRandomUserAsync();
         Task<User> CreateNewBySteamIdAsync(string steamId);
+        Task<User> GetUserBySteamId(string steamId);
     }
 
     public class UserService : IUserService
@@ -32,7 +33,7 @@ namespace WolflineSquadTTT.Services
 
         public async Task<User> CreateNewBySteamIdAsync(string steamId)
         {
-            var user = await _db.User
+            User? user = await _db.User
                 .FirstOrDefaultAsync(u => u.SteamId == steamId);
 
             if (user != null)
@@ -43,6 +44,17 @@ namespace WolflineSquadTTT.Services
 
             await _db.SaveChangesAsync();
             return user;
+        }
+
+        public async Task<User> GetUserBySteamId(string steamId)
+        {
+            User? user = await _db.User
+                .FirstOrDefaultAsync(u => u.SteamId == steamId);
+
+            if (user != null)
+                return user;
+            else
+                throw new InvalidOperationException("User not found");
         }
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using System.Reflection;
 using WolflineSquadTTT;
+using WolflineSquadTTT.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -32,14 +33,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 Assembly serviceAssembly = Assembly.GetExecutingAssembly();
 
-foreach (Type type in serviceAssembly.GetTypes())
-{
-    // Register all classes ending with "Service" as scoped
-    if (type.IsClass && type.Name.EndsWith("Service"))
-    {
-        builder.Services.AddScoped(type);
-    }
-}
+//foreach (Type type in serviceAssembly.GetTypes())
+//{
+//    // Register all classes ending with "Service" as scoped
+//    if (type.IsClass && type.Name.EndsWith("Service"))
+//    {
+//        builder.Services.AddScoped(type);
+//    }
+//}
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserRightService, UserRightService>();
+//builder.Services.AddScoped<IPollService, PollService>();
 
 WebApplication app = builder.Build();
 
