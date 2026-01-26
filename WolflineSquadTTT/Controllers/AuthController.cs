@@ -21,7 +21,7 @@ namespace WolflineSquadTTT.Controllers
         [HttpGet("/auth/steam")]
         public IActionResult SteamLogin()
         {
-            string returnUrl = Url.Action("SteamCallback", "Auth", null, Request.Scheme);
+            string returnUrl = Url.Action("SteamCallback", "Auth", null, Request.Scheme) ?? "";
             string realm = $"{Request.Scheme}://{Request.Host}";
 
             Dictionary<string, string> query = new Dictionary<string, string>

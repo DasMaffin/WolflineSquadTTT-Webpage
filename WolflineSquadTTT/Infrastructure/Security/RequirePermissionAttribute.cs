@@ -34,7 +34,7 @@ namespace WolflineSquadTTT.Infrastructure.Security
             string json = session.GetString("UserRights") ?? "";
             List<int> rights = JsonSerializer.Deserialize<List<int>>(json!) ?? new();
 
-            if (!rights.Contains(Permission) && !rights.Contains(int.MaxValue))
+            if (!rights.Contains(Permission) && !rights.Contains((int)Models.Enums.Permission.SuperAdministrator))
             {
                 context.Result = new RedirectToActionResult("Index", "Home", null);
             }

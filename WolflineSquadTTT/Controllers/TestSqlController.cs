@@ -8,6 +8,7 @@ using WolflineSquadTTT.Services;
 
 [ApiController]
 [Route("TestSQL")]
+[RequiresPermission(Permission.ViewTestSQL)] // Also works on method level
 public class TestSqlController : ControllerBase
 {
     private readonly IUserRightService _userRightService;
@@ -33,7 +34,6 @@ public class TestSqlController : ControllerBase
     }
 
     [Route("GetRights")]
-    [RequiresPermission(Permission.SuperAdministrator)]
     public async Task<object> GetRights()
     {
         string steamID = HttpContext.Session.GetString("SteamID") ?? "";
