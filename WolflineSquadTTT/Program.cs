@@ -29,6 +29,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+builder.Services.AddScoped<WolflineSquadTTT.Services.IUserService, WolflineSquadTTT.Services.UserService>();
+
 WebApplication app = builder.Build();
 
 app.UseHttpsRedirection();
