@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
+using WolflineSquadTTT;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,13 @@ builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor(); 
 builder.Services.AddTransient<MySqlConnection>(_ =>
     new MySqlConnection(connStr));
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(
+        connStr,
+        ServerVersion.AutoDetect(connStr)
+    )
+);
 
 WebApplication app = builder.Build();
 

@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using MySqlConnector;
+using Microsoft.EntityFrameworkCore;
+using WolflineSquadTTT;
 
 [ApiController]
 [Route("TestSQL")]
 public class TestSqlController : ControllerBase
 {
-    private readonly MySqlConnection _db;
+    private readonly AppDbContext _db;
 
-    public TestSqlController(MySqlConnection db)
+    public TestSqlController(AppDbContext db)
     {
         _db = db;
     }
@@ -15,22 +16,13 @@ public class TestSqlController : ControllerBase
     [HttpGet]
     public async Task<object> Get()
     {
-        await _db.OpenAsync();
+        var user = await _db.User
+            .OrderBy(u => Guid.NewGuid()) // random
+            .FirstOrDefaultAsync();
 
-        MySqlCommand cmd = new MySqlCommand(
-            "SELECT NOW() AS serverTime, DATABASE() AS dbName",
-            _db);
+        if (user == null)
+            return NotFound();
 
-        using MySqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-        if (!reader.Read())
-            return new { ok = false };
-
-        return new
-        {
-            ok = true,
-            serverTime = reader["serverTime"],
-            database = reader["dbName"]
-        };
+        return Ok(user);
     }
 }
