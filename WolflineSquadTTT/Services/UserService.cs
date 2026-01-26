@@ -20,7 +20,7 @@ namespace WolflineSquadTTT.Services
 
         public async Task<User> GetRandomUserAsync()
         {
-            var user = await _db.User
+            User? user = await _db.User
                 .OrderBy(u => Guid.NewGuid())
                 .FirstOrDefaultAsync();
 

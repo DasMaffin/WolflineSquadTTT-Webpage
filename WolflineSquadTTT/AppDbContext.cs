@@ -9,5 +9,6 @@ namespace WolflineSquadTTT
         : base(options) { }
 
         public DbSet<User> User => Set<User>();
+        public DbSet<UserRight> UserRight => Set<UserRight>();
     }
 }

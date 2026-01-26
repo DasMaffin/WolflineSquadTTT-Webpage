@@ -17,7 +17,7 @@ public class TestSqlController : ControllerBase
     public async Task<object> Get()
     {
         var user = await _db.User
-            .OrderBy(u => Guid.NewGuid()) // random
+            .OrderBy(u => Guid.NewGuid())
             .FirstOrDefaultAsync();
 
         if (user == null)

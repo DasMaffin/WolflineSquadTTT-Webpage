@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
+using System.Reflection;
 using WolflineSquadTTT;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -29,7 +30,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-builder.Services.AddScoped<WolflineSquadTTT.Services.IUserService, WolflineSquadTTT.Services.UserService>();
+Assembly serviceAssembly = Assembly.GetExecutingAssembly();
+
+foreach (Type type in serviceAssembly.GetTypes())
+{
+    // Register all classes ending with "Service" as scoped
+    if (type.IsClass && type.Name.EndsWith("Service"))
+    {
+        builder.Services.AddScoped(type);
+    }
+}
 
 WebApplication app = builder.Build();
 
