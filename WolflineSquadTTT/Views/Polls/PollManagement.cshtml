@@ -1,0 +1,91 @@
+﻿@inject IHttpContextAccessor HttpContextAccessor
+@model PollManagementViewModel
+@{
+    var session = HttpContextAccessor.HttpContext!.Session;
+    ViewData["Title"] = "Manage Polls";
+}
+@if (PermissionHelper.HasPermission(session, Permission.CreatePoll))
+{
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPollModal">
+        Create Poll
+    </button>
+}
+<!-- Modal -->
+<div class="modal fade" id="createPollModal" tabindex="-1" aria-labelledby="createPollModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="createPollModalLabel">Add Poll</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="CreateNewPoll" method="post">
+                <div class="modal-body">
+                    <!-- content -->
+                    <div class="tab-content mt-3" id="permissionTabsContent">
+                        <label asp-for="NewPoll.Title"></label>
+                        <input asp-for="NewPoll.Title" class="form-control" />
+
+                        <label asp-for="NewPoll.Description"></label>
+                        <textarea asp-for="NewPoll.Description" class="form-control" rows="3" style="resize: vertical;"></textarea>
+
+                        <label asp-for="NewPoll.PollType"></label>
+                        <select asp-for="NewPoll.PollType" class="form-select" asp-items="Html.GetEnumSelectList<PollType>()"></select>
+
+                        <label asp-for="NewPoll.Reward.RewardType"></label>
+                        <input asp-for="NewPoll.Reward.RewardType" class="form-control" />
+
+                        <label asp-for="NewPoll.Reward.RewardAmount"></label>
+                        <input asp-for="NewPoll.Reward.RewardAmount" class="form-control" type="number" />
+
+                        <label asp-for="NewPoll.EndDate"></label>
+                        <input asp-for="NewPoll.EndDate" class="form-control" type="date" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Create Poll</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* Polls Grid *@
+<div class="container mt-4">
+    <h3>Existing Polls</h3>
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (Poll poll in Model.ExistingPolls)
+        {
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@poll.Title</h5>
+                        <p class="card-text">@poll.Description</p>
+                        <p class="card-text">
+                            <small class="text-muted">Type: @poll.PollType</small><br />
+                            <small class="text-muted">Reward: @poll.Reward.RewardType (@poll.Reward.RewardAmount)</small><br />
+                            <small class="text-muted">Ends: @(poll.EndDate?.ToString("yyyy-MM-dd") ?? "No date")</small>
+                        </p>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between">
+                        @if (PermissionHelper.HasPermission(session, Permission.EditPoll))
+                        {
+                            <button class="btn btn-sm btn-warning">
+                                <i class="bi bi-pen"></i> Edit
+                            </button>
+                        }
+                        @if (PermissionHelper.HasPermission(session, Permission.DeletePoll))
+                        {
+                            <form asp-action="DeletePollById" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@poll.ID" />
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this poll?');">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

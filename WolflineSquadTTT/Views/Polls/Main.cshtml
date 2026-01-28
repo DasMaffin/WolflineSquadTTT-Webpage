@@ -1,26 +1,5 @@
-﻿@inject IHttpContextAccessor HttpContextAccessor
-
-@{
-    var session = HttpContextAccessor.HttpContext!.Session;
-    ViewData["Title"] = "Manage Polls";
+﻿@{
+    ViewData["Title"] = "Select Poll";
 }
+
 <h1>@ViewData["Title"]</h1>
-
-@if (PermissionHelper.HasPermission(session, Permission.CreatePoll))
-{
-    <button class="btn btn-primary">Create Poll</button>
-}
-
-@if (PermissionHelper.HasPermission(session, Permission.EditPoll))
-{
-    <button class="btn btn-sm btn-warning">
-        <i class="bi bi-pen"></i>
-    </button>
-}
-
-@if (PermissionHelper.HasPermission(session, Permission.DeletePoll))
-{
-    <button class="btn btn-sm btn-danger">
-        <i class="bi bi-trash"></i>
-    </button>
-}

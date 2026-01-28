@@ -12,21 +12,23 @@ namespace WolflineSquadTTT.Models
 
         [Required]
         [MaxLength(255)]
-        public required string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         [Column(TypeName = "LONGTEXT")]
-        public required string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [Required]
-        public required PollType PollType { get; set; }
+        public PollType PollType { get; set; }
 
-        public required PollReward Reward { get; set; }
+        public PollReward Reward { get; set; } = new PollReward();
+
+        public DateTime? EndDate { get; set; }
     }
 }
 
 [Owned] // EF Core attribute alternative to Fluent API
 public class PollReward
 {
-    public required string RewardType { get; set; }
-    public required int RewardAmount { get; set; }
+    public string RewardType { get; set; } = string.Empty;
+    public int RewardAmount { get; set; }
 }

@@ -35,6 +35,8 @@ Assembly serviceAssembly = Assembly.GetExecutingAssembly();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRightService, UserRightService>();
+builder.Services.AddScoped<IPollService, PollService>();
+builder.Services.AddScoped<IPollOptionService, PollOptionService>();
 
 WebApplication app = builder.Build();
 
