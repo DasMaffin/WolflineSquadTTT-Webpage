@@ -1,18 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
+using WolflineSquadTTT.Models.Enums;
 
 namespace WolflineSquadTTT.Controllers
 {
     public class PollsController : Controller
     {
+        [RequiresPermission([Permission.CreatePoll, Permission.EditPoll, Permission.DeletePoll], Mode = PermissionMode.Or)]
         public IActionResult Main()
         {
-            if (HttpContext.Session.GetString("SteamID") == null)
-            {
-                return Redirect("/");   // TODO Add a site prompting login.
-            }
-
             return View();
         }
 

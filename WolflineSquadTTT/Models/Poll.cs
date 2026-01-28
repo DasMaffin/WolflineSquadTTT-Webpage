@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using WolflineSquadTTT.Models.Enums;
 
@@ -18,5 +19,14 @@ namespace WolflineSquadTTT.Models
 
         [Required]
         public required PollType PollType { get; set; }
+
+        public required PollReward Reward { get; set; }
     }
+}
+
+[Owned] // EF Core attribute alternative to Fluent API
+public class PollReward
+{
+    public required string RewardType { get; set; }
+    public required int RewardAmount { get; set; }
 }
