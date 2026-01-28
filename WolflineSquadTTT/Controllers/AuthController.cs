@@ -68,6 +68,7 @@ namespace WolflineSquadTTT.Controllers
             // Save session
             HttpContext.Session.SetString("SteamID", steamId);
 
+            User user = await _userService.CreateNewBySteamIdAsync(steamId);
             List<UserRight> rights = await _userRightService.GetUserRightsAsync(steamId);
 
             HttpContext.Session.SetString(
