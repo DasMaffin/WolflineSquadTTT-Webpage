@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using WolflineSquadTTT.Infrastructure;
+﻿using WolflineSquadTTT.Infrastructure;
 
 namespace WolflineSquadTTT.Models.Enums
 {
@@ -18,7 +17,7 @@ namespace WolflineSquadTTT.Models.Enums
         /// </summary>
         [PermissionGroup("Poll")] DeletePoll = 3,
         /// <summary>
-        /// Allows user to give other users rights. Requires the specific right itself or it cant be given.
+        /// Allows user to give other users rights. Requires the specific right itself or it cant be given (Except Superadmins).
         /// </summary>
         [PermissionGroup("Administrative")] ManageRights = 4,
         /// <summary>
@@ -29,6 +28,6 @@ namespace WolflineSquadTTT.Models.Enums
         /// <summary>
         /// Allows user to do anything. Use with caution!
         /// </summary>
-        [PermissionGroup("Sueradmin")] SuperAdministrator = int.MaxValue   // Danger! Overrides any other permission. Superadmin can do anything.
+        [PermissionGroup("Superadmin")] SuperAdministrator = int.MaxValue   // Danger! Overrides any other permission. Superadmin can do anything.
     }
 }

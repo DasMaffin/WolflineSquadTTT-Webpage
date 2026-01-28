@@ -1,0 +1,137 @@
+﻿@using System.Reflection
+@using WolflineSquadTTT.Infrastructure
+@using static WolflineSquadTTT.Models.UserPermissionsViewModel
+@model UserPermissionsViewModel
+
+<input type="text" id="steamIdInput" placeholder="Enter SteamID" class="form-control" />
+
+<button type="button" class="btn btn-primary" onclick="openPermissionsModal()">
+    Open Permissions
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Permissions</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Generate the tab headers -->
+                @{
+                    List<IGrouping<string, PermissionCheckbox>> groupedPermissions = Model.Permissions
+                    .GroupBy(p => p.Permission.GetType()
+                    .GetMember(p.Permission.ToString())[0]
+                    .GetCustomAttribute<PermissionGroupAttribute>()?.GroupName ?? "Other")
+                    .ToList();
+                }
+                <ul class="nav nav-tabs" id="permissionTabs" role="tablist">
+                    @for (int i = 0; i < groupedPermissions.Count; i++)
+                    {
+                        IGrouping<string, PermissionCheckbox> group = groupedPermissions[i];
+                        string groupId = group.Key.Replace(" ", "") + "Tab";
+                        string activeClass = i == 0 ? "active" : "";
+                        string ariaSelected = i == 0 ? "true" : "false";
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @activeClass"
+                                id="@groupId-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#@groupId"
+                                type="button" role="tab"
+                                aria-controls="@groupId"
+                                aria-selected="@ariaSelected">
+                                @group.Key
+                            </button>
+                        </li>
+                    }
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content mt-3" id="permissionTabsContent">
+                    @for (int i = 0; i < groupedPermissions.Count; i++)
+                    {
+                        IGrouping<string, PermissionCheckbox> group = groupedPermissions[i];
+                        string groupId = group.Key.Replace(" ", "") + "Tab";
+                        <div class="tab-pane fade @(i == 0 ? "show active" : "")"
+                             id="@groupId"
+                             role="tabpanel"
+                             aria-labelledby="@groupId-tab">
+                            <fieldset>
+                                @foreach (PermissionCheckbox perm in group)
+                                {
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input permission-checkbox"
+                                            data-permission="@perm.Permission"
+                                            data-permissionint="@((int)perm.Permission)"
+                                            asp-for="@perm.Selected"
+                                            id="@perm.Permission">
+                                        <label class="form-check-label" for="@perm.Permission">@perm.Permission</label>
+                                    </div>
+                                }
+                            </fieldset>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="savePermissions()">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function openPermissionsModal() {
+        const steamId = document.getElementById("steamIdInput").value;
+
+        if (!steamId) return alert("Enter SteamID");
+
+        const rights = await fetch(`/Admin/GetUserPermissions?steamId=${steamId}`).then(r => r.json());
+
+        document.querySelectorAll(".permission-checkbox").forEach(cb => {
+            const permName = cb.dataset.permission;
+            cb.checked = rights.includes(permName);
+        });
+
+        new bootstrap.Modal(document.getElementById('exampleModal')).show();
+    }
+
+    async function savePermissions() {
+        const steamId = document.getElementById("steamIdInput").value;
+        if (!steamId) return alert("Enter SteamID");
+
+        const permissions = Array.from(document.querySelectorAll(".permission-checkbox")).map(cb => ({
+            permission: parseInt(cb.dataset.permissionint), // integer
+            selected: cb.checked
+        }));
+
+        const model = {
+            steamId: steamId,
+            permissions: permissions
+        };
+
+        try {
+            const response = await fetch('/Admin/Manage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: JSON.stringify(model)
+            });
+
+            if (response.ok) {
+                alert("Permissions saved!");
+                bootstrap.Modal.getInstance(document.getElementById('exampleModal')).hide();
+            } else {
+                const errorText = await response.text();
+                alert("Error saving permissions:\n" + errorText);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An unexpected error occurred.");
+        }
+    }
+</script>
