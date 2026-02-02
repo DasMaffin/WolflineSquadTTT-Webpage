@@ -40,6 +40,7 @@ namespace WolflineSquadTTT.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequiresPermission(Permission.CreatePoll)]
         public async Task<IActionResult> CreateNewPoll(PollManagementViewModel model)
         {
             if (!ModelState.IsValid)
@@ -70,6 +71,16 @@ namespace WolflineSquadTTT.Controllers
         {
             await _pollService.DeletePollByIdAsync(id);
             return RedirectToAction("PollManagement");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequiresPermission(Permission.EditPoll)]
+        public async Task<IActionResult> UpdatePoll(Poll editedPoll)
+        {
+            if (!ModelState.IsValid)
+                return RedirectToAction("PollManagement");
+            throw new NotImplementedException();
         }
     }
 }
