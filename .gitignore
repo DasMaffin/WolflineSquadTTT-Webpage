@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /WolflineSquadTTT/appsettings.json
 /WolflineSquadTTT/appsettings.Development.json
+/WolflineSquadTTT/appsettings.production.json
