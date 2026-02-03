@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WolflineSquadTTT;
 
@@ -11,9 +12,11 @@ using WolflineSquadTTT;
 namespace WolflineSquadTTT.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260203221054_AutoMigration_20260203231048")]
+    partial class AutoMigration_20260203231048
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -90,32 +93,6 @@ namespace WolflineSquadTTT.Migrations
                     b.ToTable("User");
                 });
 
-            modelBuilder.Entity("WolflineSquadTTT.Models.UserPollOptionVote", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("PollOptionFK")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Rank")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserFK")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PollOptionFK");
-
-                    b.HasIndex("UserFK");
-
-                    b.ToTable("UserPollOptionVote");
-                });
-
             modelBuilder.Entity("WolflineSquadTTT.Models.UserRight", b =>
                 {
                     b.Property<int>("Id")
@@ -172,25 +149,6 @@ namespace WolflineSquadTTT.Migrations
                         .IsRequired();
 
                     b.Navigation("Poll");
-                });
-
-            modelBuilder.Entity("WolflineSquadTTT.Models.UserPollOptionVote", b =>
-                {
-                    b.HasOne("WolflineSquadTTT.Models.PollOption", "PollOption")
-                        .WithMany()
-                        .HasForeignKey("PollOptionFK")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("WolflineSquadTTT.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserFK")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PollOption");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WolflineSquadTTT.Models.UserRight", b =>

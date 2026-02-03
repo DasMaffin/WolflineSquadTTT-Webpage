@@ -12,5 +12,6 @@ namespace WolflineSquadTTT
         public DbSet<UserRight> UserRight => Set<UserRight>();
         public DbSet<Poll> Poll => Set<Poll>();
         public DbSet<PollOption> PollOption => Set<PollOption>();
+        public DbSet<UserPollOptionVote> UserPollOptionVote => Set<UserPollOptionVote>();
     }
 }
