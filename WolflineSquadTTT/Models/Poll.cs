@@ -24,11 +24,11 @@ namespace WolflineSquadTTT.Models
 
         public DateTime? EndDate { get; set; }
     }
-}
 
-[Owned] // EF Core attribute alternative to Fluent API
-public class PollReward
-{
-    public string RewardType { get; set; } = string.Empty;
-    public int RewardAmount { get; set; }
+    [Owned] // EF Core attribute alternative to Fluent API
+    public class PollReward
+    {
+        public string RewardType { get; set; } = string.Empty;
+        public int RewardAmount { get; set; }
+    }
 }

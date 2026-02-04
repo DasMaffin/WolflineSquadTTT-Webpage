@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Coverage.runsettings" />
+  </Folder>
   <Project Path="WolflineSquadTTT.Tests/WolflineSquadTTT.Tests.csproj" Id="21e9186e-8c85-41f2-bbd4-12f5ec467f18" />
   <Project Path="WolflineSquadTTT/WolflineSquadTTT.csproj" />
 </Solution>

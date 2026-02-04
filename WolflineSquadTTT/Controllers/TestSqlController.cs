@@ -5,41 +5,43 @@ using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
 using WolflineSquadTTT.Models.Enums;
 using WolflineSquadTTT.Services;
-
-[ApiController]
-[Route("TestSQL")]
-[RequiresPermission(Permission.ViewTestSQL)] // Also works on method level
-public class TestSqlController : ControllerBase
+namespace WolflineSquadTTT.Controllers
 {
-    private readonly IUserRightService _userRightService;
-    private readonly AppDbContext _db;
-
-    public TestSqlController(AppDbContext db, IUserRightService userRightService)
+    [ApiController]
+    [Route("TestSQL")]
+    [RequiresPermission(Permission.ViewTestSQL)] // Also works on method level
+    public class TestSqlController : ControllerBase
     {
-        _userRightService = userRightService;
-        _db = db;
-    }
+        private readonly IUserRightService _userRightService;
+        private readonly AppDbContext _db;
 
-    [HttpGet]
-    public async Task<object> Get()
-    {
-        User? user = await _db.User
-            .OrderBy(u => Guid.NewGuid())
-            .FirstOrDefaultAsync();
+        public TestSqlController(AppDbContext db, IUserRightService userRightService)
+        {
+            _userRightService = userRightService;
+            _db = db;
+        }
 
-        if (user == null)
-            return NotFound();
+        [HttpGet]
+        public async Task<object> Get()
+        {
+            User? user = await _db.User
+                .OrderBy(u => Guid.NewGuid())
+                .FirstOrDefaultAsync();
 
-        return Ok(user);
-    }
+            if (user == null)
+                return NotFound();
 
-    [Route("GetRights")]
-    public async Task<object> GetRights()
-    {
-        string steamID = HttpContext.Session.GetString("SteamID") ?? "";
+            return Ok(user);
+        }
 
-        List<UserRight> userRights = await _userRightService.GetUserRightsAsync(steamID);
+        [Route("GetRights")]
+        public async Task<object> GetRights()
+        {
+            string steamID = HttpContext.Session.GetString("SteamID") ?? "";
 
-        return Ok(userRights);
+            List<UserRight> userRights = await _userRightService.GetUserRightsAsync(steamID);
+
+            return Ok(userRights);
+        }
     }
 }

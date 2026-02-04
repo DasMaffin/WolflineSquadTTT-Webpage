@@ -46,6 +46,7 @@ namespace WolflineSquadTTT.Tests
             await CreateDBUser(steamId);
             User getUser = await userService.GetUserBySteamId(steamId);
             Assert.Equal(steamId, getUser.SteamId);
+            await Assert.ThrowsAsync<InvalidOperationException>(async() => await userService.GetUserBySteamId("7"));
         }
     }
 }
