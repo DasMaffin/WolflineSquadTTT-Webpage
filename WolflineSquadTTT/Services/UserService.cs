@@ -6,7 +6,7 @@ namespace WolflineSquadTTT.Services
     public interface IUserService
     {
         Task<User> GetRandomUserAsync();
-        Task<User> CreateNewBySteamIdAsync(string steamId);
+        Task<User> CreateNewOrFetchBySteamIdAsync(string steamId);
         Task<User> GetUserBySteamId(string steamId);
     }
 
@@ -31,7 +31,7 @@ namespace WolflineSquadTTT.Services
             return user;
         }
 
-        public async Task<User> CreateNewBySteamIdAsync(string steamId)
+        public async Task<User> CreateNewOrFetchBySteamIdAsync(string steamId)
         {
             User? user = await _db.User
                 .FirstOrDefaultAsync(u => u.SteamId == steamId);

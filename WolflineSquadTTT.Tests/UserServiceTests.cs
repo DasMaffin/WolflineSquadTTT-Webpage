@@ -34,7 +34,7 @@ namespace WolflineSquadTTT.Tests
 
         private async Task<UserService> CreateDBUser(string steamId)
         {
-            await userService.CreateNewBySteamIdAsync(steamId);
+            await userService.CreateNewOrFetchBySteamIdAsync(steamId);
 
             return userService;
         }

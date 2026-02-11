@@ -18,8 +18,53 @@ html {
 }
 
 body {
-  margin-bottom: 60px;
+    margin-bottom: 60px;
+    background-image: url("/images/background.png");
+    background-size: cover; /* fills screen */
+    background-position: center; /* center image */
+    background-repeat: no-repeat; /* no tiling */
+    background-attachment: fixed; /* stays on scroll (optional) */
 }
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5); /* adjust darkness here */
+    z-index: -1;
+}
+
+header .navbar {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(3px);
+}
+header .navbar a {
+    color: #fff !important;
+}
+
+footer.footer {
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(3px);
+}
+footer.footer a {
+    color: #ccc;
+}
+
+footer.footer a:hover {
+    color: #fff;
+}
+
+.container-background {
+    background-color: rgba(0, 0, 0, 0.85);
+    padding-bottom:4px;
+}
+
+a[target="_blank"]::after {
+    content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAQElEQVR42qXKwQkAIAxDUUdxtO6/RBQkQZvSi8I/pL4BoGw/XPkh4XigPmsUgh0626AjRsgxHTkUThsG2T/sIlzdTsp52kSS1wAAAABJRU5ErkJggg==);
+    margin: 0 3px 0 5px;
+    filter: brightness(0) invert(1);
+}
+
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);

@@ -1,10 +1,47 @@
 ﻿@{
     ViewData["Title"] = "Datenschutzerklärung";
 }
+@section Styles {
+    <style>
+        @*Display all tabs at once when a print is initiated.*@
+        @@media print {
 
-<div class="container mt-4">
+            .nav,
+            .nav-tabs,
+            .nav-pills {
+                display: none !important;
+            }
+
+            .tab-content > .tab-pane {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+
+            .tab-pane {
+                transform: none !important;
+            }
+
+            .container-background,
+            .card,
+            .tab-content {
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+            }
+        }
+    </style>
+}
+
+
+<div class="container container-background mt-4">
 
     <h1>Datenschutzerklärung (DSGVO)</h1>
+    <p class="text-muted">Stand: Februar 2026</p>
     <p><strong>TTT Server „TTT WolflineSquad“</strong></p>
 
     <hr />
@@ -23,58 +60,140 @@
             Auf unserem TTT-Server werden personenbezogene Daten ausschließlich zu Zwecken des Serverbetriebs,
             der Spielerverwaltung und der Verbesserung des Spielerlebnisses erhoben, verarbeitet und gespeichert.
         </p>
-
-        <h3>Pointshop 2</h3>
-        <ul>
-            <li>Gespeichert werden gekaufte Items und Punkte auf unserer Server-Datenbank</li>
-            <li>Keine Weitergabe an Dritte</li>
-        </ul>
-
-        <h3>Activity Tracker Plugin</h3>
-        <ul>
-            <li>Speicherung als JSON-Datei im DATA-Ordner</li>
-            <li>
-                Erhobene Daten:
-                <ul>
-                    <li>Start- und Endzeit der Runde</li>
-                    <li>Anzahl der Spieler pro Runde</li>
-                    <li>Aktivität (aktiv / AFK)</li>
-                    <li>Anzahl abgeschlossener Damagelog-Reports</li>
-                </ul>
+        
+        <!-- Tab headers -->
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-body active"
+                        id="Pointshop2-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#Pointshop2"
+                        type="button"
+                        role="tab">
+                    Pointshop 2
+                </button>
             </li>
-            <li>Identifikation über SteamID64</li>
-            <li>Keine Weitergabe an Dritte</li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-body"
+                        id="ActivityTracker-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#ActivityTracker"
+                        type="button"
+                        role="tab">
+                    Activity Tracker
+                </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-body"
+                        id="Damagelog-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#Damagelog"
+                        type="button"
+                        role="tab">
+                    Damagelog
+                </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-body"
+                        id="Benutzerverwaltung-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#Benutzerverwaltung"
+                        type="button"
+                        role="tab">
+                    Benutzerverwaltung
+                </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-body"
+                        id="Umfragen-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#Umfragen"
+                        type="button"
+                        role="tab">
+                    Umfragen
+                </button>
+            </li>
         </ul>
 
-        <h3>Damagelog-Addon</h3>
-        <ul>
-            <li>Speicherung nur für die Dauer von zwei Maps</li>
-            <li>Keine Verbindung zu anderen Datenbanken</li>
-            <li>Keine zusätzlichen personenbezogenen Daten</li>
-            <li>Keine Weitergabe an Dritte</li>
-        </ul>
+        <!-- Tab Content -->
+        <div class="tab-content border border-top-0 p-3" id="myTabContent">
 
-        <h3>Website: Benutzerverwaltung</h3>
-        <ul>
-            <li>Eindeutige interne Benutzer-ID</li>
-            <li>Steam-ID zur Identifikation angemeldeter Nutzer</li>
-            <li>Zugewiesene Benutzerrechte (z. B. Administrator- oder Moderationsrechte)</li>
-        </ul>
-        <p>
-            Diese Daten sind erforderlich, um Benutzerkonten zu verwalten, Berechtigungen zu steuern
-            und den sicheren Betrieb der Website zu gewährleisten.
-        </p>
+            <div class="tab-pane fade show active"
+                 id="Pointshop2"
+                 role="tabpanel">
+                <h3>Pointshop 2</h3>
+                <ul>
+                    <li>Gespeichert werden gekaufte Items und Punkte auf unserer Server-Datenbank</li>
+                    <li>Keine Weitergabe an Dritte</li>
+                </ul>
+            </div>
 
-        <h3>Website: Umfragen (Polls)</h3>
-        <ul>
-            <li>Antwort(en) bei einer Umfrage.</li>
-        </ul>
-        <p>
-            Umfragen werden vom Betreiberteam der Website erstellt und verwaltet.
-            Es handelt sich nicht um nutzergenerierte Inhalte.
-        </p>
+            <div class="tab-pane fade"
+                 id="ActivityTracker"
+                 role="tabpanel">
+                <h3>Activity Tracker Plugin</h3>
+                <ul>
+                    <li>Speicherung als JSON-Datei im DATA-Ordner</li>
+                    <li>
+                        Erhobene Daten:
+                        <ul>
+                            <li>Start- und Endzeit der Runde</li>
+                            <li>Anzahl der Spieler pro Runde</li>
+                            <li>Aktivität (aktiv / AFK)</li>
+                            <li>Anzahl abgeschlossener Damagelog-Reports</li>
+                        </ul>
+                    </li>
+                    <li>Identifikation über SteamID64 (eindeutige Online-Kennung im Sinne von Art. 4 Nr. 1 DSGVO)</li>
+                    <li>Keine Weitergabe an Dritte</li>
+                </ul>
+            </div>
+
+            <div class="tab-pane fade"
+                 id="Damagelog"
+                 role="tabpanel">
+                <h3>Damagelog-Addon</h3>
+                <ul>
+                    <li>Speicherung nur für die Dauer von zwei Maps</li>
+                    <li>Keine Verbindung zu anderen Datenbanken</li>
+                    <li>Keine zusätzlichen personenbezogenen Daten</li>
+                    <li>Keine Weitergabe an Dritte</li>
+                </ul>
+            </div>
+
+            <div class="tab-pane fade"
+                 id="Benutzerverwaltung"
+                 role="tabpanel">
+                <h3>Website: Benutzerverwaltung</h3>
+                <ul>
+                    <li>Eindeutige interne Benutzer-ID</li>
+                    <li>Steam-ID zur Identifikation angemeldeter Nutzer</li>
+                    <li>Zugewiesene Benutzerrechte (z. B. Administrator- oder Moderationsrechte)</li>
+                </ul>
+                <p>
+                    Diese Daten sind erforderlich, um Benutzerkonten zu verwalten, Berechtigungen zu steuern
+                    und den sicheren Betrieb der Website zu gewährleisten.
+                </p>
+            </div>
+
+            <div class="tab-pane fade"
+                 id="Umfragen"
+                 role="tabpanel">
+                <h3>Website: Umfragen (Polls)</h3>
+                <ul>
+                    <li>Antwort(en) bei einer Umfrage.</li>
+                </ul>
+                <p>
+                    Umfragen werden vom Betreiberteam der Website erstellt und verwaltet.
+                    Es handelt sich nicht um nutzergenerierte Inhalte.
+                </p>
+            </div>
+        </div>        
     </section>
-
+    <br />
     <section>
         <h2>2. Zweck der Verarbeitung</h2>
         <ul>
@@ -131,5 +250,4 @@
             Änderungen werden auf dem Server oder über unsere Kommunikationskanäle bekannt gegeben.
         </p>
     </section>
-
 </div>
