@@ -44,8 +44,10 @@ namespace WolflineSquadTTT
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IUserRightService, UserRightService>();
             builder.Services.AddScoped<IPollService, PollService>();
-            builder.Services.AddScoped<IPollOptionService, PollOptionService>();
+            builder.Services.AddScoped<IPollOptionService, PollOptionService>(); 
+            builder.Services.AddHttpClient<ISteamService, SteamService>();
 
+            builder.Services.AddMemoryCache();
             WebApplication app = builder.Build();
 
             app.UseHttpsRedirection();

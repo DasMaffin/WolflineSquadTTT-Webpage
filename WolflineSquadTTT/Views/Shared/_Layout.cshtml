@@ -1,6 +1,17 @@
 ﻿@using Microsoft.AspNetCore.Http
+@using WolflineSquadTTT.Services
 @inject IHttpContextAccessor HttpContextAccessor
+@inject ISteamService SteamService
 @RenderSection("Styles", required: false)
+@{
+    Dictionary<ulong, string> workshopImages = await SteamService.GetWorkshopPreviewImagesAsync(new List<ulong> 
+    {
+        (ulong)ESteamWorkshopIds.WutheringWavesPlayerModels,
+        (ulong)ESteamWorkshopIds.MainCollection,
+        (ulong)ESteamWorkshopIds.Maps
+    });
+    string baseWorkshopLink = $"https://steamcommunity.com/sharedfiles/filedetails/?id=";
+}
 
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
@@ -34,7 +45,7 @@
                             <a class="nav-link external" target="_blank" rel="noopener noreferrer" href="https://wolflinesquad.tebex.io/">Shop</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link external" target="_blank" rel="noopener noreferrer" href="https://steamcommunity.com/sharedfiles/filedetails/?id=3614423889">TTT Collection</a>
+                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#steamWorkshopModal">Workshop Items</a>
                         </li>
                     </ul>
                     <div class="ms-auto">
@@ -55,6 +66,103 @@
             </div>
         </nav>
     </header>
+
+    <div class="modal fade" id="steamWorkshopModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-dark text-light">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Steam Workshop Collection</h5>
+                    <button type="button" class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3" id="workshopTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active"
+                                    id="miscellaneous-tab"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#miscellaneous"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="miscellaneous"
+                                    aria-selected="true">
+                                Miscellaneous
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link"
+                                    id="playermodels-tab"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#playermodels"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="playermodels"
+                                    aria-selected="false">
+                                Playermodels
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link"
+                                    id="maps-tab"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#maps"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="maps"
+                                    aria-selected="false">
+                                Maps
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="miscellaneous" role="tabpanel" aria-labelledby="miscellaneous-tab">
+                            <div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">
+                                <div style="text-align:center;">
+                                    <a href="@($"{baseWorkshopLink}{(ulong)ESteamWorkshopIds.MainCollection}")" target="_blank">
+                                        <img src="@workshopImages[(ulong)ESteamWorkshopIds.MainCollection]"
+                                             class="img-fluid rounded shadow"
+                                             style="cursor:pointer; max-height:30vh;" />
+                                    </a>
+                                    <div style="margin-top:5px; font-size:0.9rem;">Main Collection</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="playermodels" role="tabpanel" aria-labelledby="playermodels-tab">
+                            <div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">
+                                <div style="text-align:center">
+                                    <a href="@($"{baseWorkshopLink}{(ulong)ESteamWorkshopIds.WutheringWavesPlayerModels}")" target="_blank">
+                                        <img src="@workshopImages[(ulong)ESteamWorkshopIds.WutheringWavesPlayerModels]"
+                                                class="img-fluid rounded shadow"
+                                                style="cursor:pointer; max-height:30vh" />
+                                    </a>
+                                    <div style="margin-top:5px; font-size:0.9rem;">Wuthering Waves Playermodels</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="maps" role="tabpanel" aria-labelledby="maps-tab">
+                            <div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">
+                                <div style="text-align:center">
+                                    <a href="@($"{baseWorkshopLink}{(ulong)ESteamWorkshopIds.Maps}")" target="_blank">
+                                        <img src="@workshopImages[(ulong)ESteamWorkshopIds.Maps]"
+                                             class="img-fluid rounded shadow"
+                                             style="cursor:pointer; max-height:30vh" />
+                                    </a>
+                                    <div style="margin-top:5px; font-size:0.9rem;">TTT Maps</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>                    
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()

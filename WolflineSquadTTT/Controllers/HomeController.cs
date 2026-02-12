@@ -37,6 +37,12 @@ namespace WolflineSquadTTT.Controllers
             return View();
         }
 
+        [Route("Background")]
+        public IActionResult AnimatedBGBrowserSource()
+        {
+            return View();
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

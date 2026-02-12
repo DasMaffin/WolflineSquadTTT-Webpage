@@ -20,17 +20,17 @@ html {
 body {
     margin-bottom: 60px;
     background-image: url("/images/background.png");
-    background-size: cover; /* fills screen */
-    background-position: center; /* center image */
-    background-repeat: no-repeat; /* no tiling */
-    background-attachment: fixed; /* stays on scroll (optional) */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }
 
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5); /* adjust darkness here */
+    background: rgba(0, 0, 0, 0.5);
     z-index: -1;
 }
 
@@ -59,7 +59,7 @@ footer.footer a:hover {
     padding-bottom:4px;
 }
 
-a[target="_blank"]::after {
+a[target="_blank"]:not(:has(img))::after {
     content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAQElEQVR42qXKwQkAIAxDUUdxtO6/RBQkQZvSi8I/pL4BoGw/XPkh4XigPmsUgh0626AjRsgxHTkUThsG2T/sIlzdTsp52kSS1wAAAABJRU5ErkJggg==);
     margin: 0 3px 0 5px;
     filter: brightness(0) invert(1);
