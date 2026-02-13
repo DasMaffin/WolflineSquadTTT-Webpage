@@ -1,0 +1,90 @@
+﻿@model StatsViewModel
+@{
+    ViewData["Title"] = "Player Stats";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h2>Player Activity</h2>
+
+<form method="post">
+    <div>
+        <label>Start:</label>
+        <input type="date" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+
+        <label>End:</label>
+        <input type="date" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+    </div>
+
+    <br/>
+
+    <div id="userContainer">
+        @for (int i = 0; i < Model.SteamIds.Count; i++)
+        {
+            <div>
+                <input name="SteamIds[@i]" value="@Model.SteamIds[i]" />
+                <button type="button" onclick="removeRow(this)">❌</button>
+            </div>
+        }
+    </div>
+
+    <button type="button" onclick="addUser()">➕ Add User</button>
+    <button type="submit">Generate</button>
+</form>
+
+<hr/>
+
+@if (Model.Result.Any())
+{
+    <canvas id="chart"></canvas>
+
+    <script>
+        const datasets = [];
+
+        @foreach (var kvp in Model.Result)
+        {
+            <text>
+            datasets.push({
+                label: "@kvp.Key",
+                data: [@string.Join(",", kvp.Value)],
+                fill: false,
+                borderWidth: 2
+            });
+            </text>
+        }
+
+        new Chart(document.getElementById("chart"), {
+            type: "line",
+            data: {
+                labels: ["00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23"],
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { title: { display: true, text: "Minutes Played" } },
+                    x: { title: { display: true, text: "Hour of Day" } }
+                }
+            }
+        });
+    </script>
+}
+
+<script>
+function addUser() {
+    const container = document.getElementById("userContainer");
+    const index = container.children.length;
+
+    const div = document.createElement("div");
+    div.innerHTML = `
+        <input name="SteamIds[${index}]" />
+        <button type="button" onclick="removeRow(this)">❌</button>
+    `;
+
+    container.appendChild(div);
+}
+
+function removeRow(btn) {
+    btn.parentElement.remove();
+}
+</script>

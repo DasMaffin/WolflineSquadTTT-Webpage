@@ -7,6 +7,7 @@ namespace WolflineSquadTTT.Services
     {
         Task<KeyValuePair<ulong, string>> GetWorkshopPreviewImageAsync(ulong workshopId);
         Task<Dictionary<ulong, string>> GetWorkshopPreviewImagesAsync(List<ulong> workshopIds);
+        Task<string> GetPrettyNameAsync(ulong steamId);
     }
 
     public class SteamService : ISteamService
@@ -69,6 +70,34 @@ namespace WolflineSquadTTT.Services
             }
 
             return (Dictionary<ulong, string>)ret;
+        }
+
+        private readonly Dictionary<ulong, string> steamIdToName_cache = new();
+        public async Task<string> GetPrettyNameAsync(ulong steamId)
+        {
+            if (steamIdToName_cache.TryGetValue(steamId, out var cachedName))
+                return cachedName;
+
+            try
+            {
+                // Replace YOUR_STEAM_API_KEY with your key
+                var url = $"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={_apiKey}&steamids={steamId}";
+                var response = await _httpClient.GetStringAsync(url);
+                using var doc = JsonDocument.Parse(response);
+
+                var player = doc.RootElement
+                                .GetProperty("response")
+                                .GetProperty("players")[0];
+
+                var name = player.GetProperty("personaname").GetString() ?? $"Unknown ({steamId})";
+
+                steamIdToName_cache[steamId] = name; // cache it for later
+                return name;
+            }
+            catch
+            {
+                return $"Unknown ({steamId})";
+            }
         }
     }
 }

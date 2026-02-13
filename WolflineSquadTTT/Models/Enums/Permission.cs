@@ -24,6 +24,10 @@ namespace WolflineSquadTTT.Models.Enums
         /// Allows user to view the Test SQL endpoint.
         /// </summary>
         ViewTestSQL = 5,
+        /// <summary>
+        /// Allows user to view play time statistics of everyone else.
+        /// </summary>
+        [PermissionGroup("Administrative")] ViewPlayerActivity = 6,
 
         /// <summary>
         /// Allows user to do anything. Use with caution!
