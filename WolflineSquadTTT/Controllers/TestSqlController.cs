@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using WolflineSquadTTT;
 using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
 using WolflineSquadTTT.Models.Enums;

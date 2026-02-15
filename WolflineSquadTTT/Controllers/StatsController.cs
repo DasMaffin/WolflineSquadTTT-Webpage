@@ -7,6 +7,7 @@ using WolflineSquadTTT.Services;
 
 namespace WolflineSquadTTT.Controllers
 {
+    [RequiresPermission(Permission.ViewPlayerActivity)]
     public class StatsController : Controller
     {
 
@@ -24,7 +25,6 @@ namespace WolflineSquadTTT.Controllers
 
         [HttpPost]
         [Route("Stats")]
-        [RequiresPermission(Permission.ViewPlayerActivity)]
         public async Task<IActionResult> Index(StatsViewModel model)
         {
             Dictionary<string, List<RoundEntry>> data = new Dictionary<string, List<RoundEntry>>(); // Website is limited to 256MB and this is a lot of data. Thus we dont cache it.
