@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
 using WolflineSquadTTT.Services;
 namespace WolflineSquadTTT.Controllers
@@ -6,6 +7,7 @@ namespace WolflineSquadTTT.Controllers
 
     [ApiController]
     [Route("api/GoldenDeagleShots")]
+    [RequiresApiPrivateKey]
     public class RoundDataController : ControllerBase
     {
         private readonly DataWriterService _dataWriter;
