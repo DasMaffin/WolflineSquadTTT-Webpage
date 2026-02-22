@@ -24,8 +24,8 @@ namespace WolflineSquadTTT.Services
 
         public void AppendData(GoldenDeagleShots data)
         {
-            var json = File.ReadAllText(_filePath);
-            var list = JsonSerializer.Deserialize<List<GoldenDeagleShots>>(json) ?? new List<GoldenDeagleShots>();
+            string json = File.ReadAllText(_filePath);
+            List<GoldenDeagleShots> list = JsonSerializer.Deserialize<List<GoldenDeagleShots>>(json) ?? new List<GoldenDeagleShots>();
             list.Add(data);
             File.WriteAllText(_filePath, JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true }));
         }

@@ -2,9 +2,9 @@
 {
     public class GoldenDeagleShots
     {
-        public ulong Player { get; set; }
+        public string Player { get; set; } = string.Empty;
         public long Timestamp { get; set; }
-        public ulong ShotAt { get; set; }
+        public string ShotAt { get; set; } = string.Empty;
         public int VictimWas { get; set; }
     }
 }
