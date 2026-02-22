@@ -45,7 +45,8 @@ namespace WolflineSquadTTT
             builder.Services.AddScoped<IUserRightService, UserRightService>();
             builder.Services.AddScoped<IPollService, PollService>();
             builder.Services.AddScoped<IPollOptionService, PollOptionService>(); 
-            builder.Services.AddHttpClient<ISteamService, SteamService>();
+            builder.Services.AddHttpClient<ISteamService, SteamService>(); 
+            builder.Services.AddSingleton<DataWriterService>();
 
             builder.Services.AddMemoryCache();
             WebApplication app = builder.Build();
@@ -69,7 +70,7 @@ namespace WolflineSquadTTT
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
-
+            app.MapControllers();
 
             app.Run();
         }
