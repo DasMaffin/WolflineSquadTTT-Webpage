@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /WolflineSquadTTT/appsettings.Development.json
 /WolflineSquadTTT/appsettings.Production.json
 /WolflineSquadTTT/wwwroot/data/golden_deagle_shots.json
+/WolflineSquadTTT/DataProtection-Keys/

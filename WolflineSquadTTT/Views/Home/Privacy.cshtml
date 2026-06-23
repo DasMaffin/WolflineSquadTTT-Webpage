@@ -1,6 +1,54 @@
 ﻿@{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
+<div class="container container-background mt-4">
+    <h1>@ViewData["Title"]</h1>
+    <p class="text-muted">Last updated: June 2026</p>
+    <p>
+        This page summarizes how the WolflineSquad website handles your data. The complete,
+        legally binding data-protection notice is our
+        <a asp-controller="Home" asp-action="Gdpr">GDPR / Datenschutzerklärung</a>.
+    </p>
 
-<p>Use this page to detail your site's privacy policy.</p>
+    <section>
+        <h2>1. Data we store</h2>
+        <ul>
+            <li>An internal user ID and your SteamID, used to identify you when you are signed in.</li>
+            <li>Permissions assigned to your account (e.g. administrator or moderation rights).</li>
+            <li>Your answer(s) when you take part in a poll.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>2. Sign-in with Steam</h2>
+        <p>
+            You can sign in using Steam (OpenID). We only receive your SteamID from Steam &mdash;
+            no password or other Steam account details.
+        </p>
+    </section>
+
+    <section>
+        <h2>3. Cookies</h2>
+        <p>This site uses only strictly necessary cookies. We do not use tracking, analytics, advertising, or third-party cookies.</p>
+        <ul>
+            <li>
+                <strong>Session cookie</strong> (<code>.AspNetCore.Session</code>): keeps your session
+                alive while you browse; removed when the browser is closed or the session expires.
+            </li>
+            <li>
+                <strong>Login cookie</strong> (<code>WolflineLogin</code>): set only when you sign in
+                with Steam, so you stay logged in across visits. It stores only your SteamID in a signed
+                (tamper-proof) form and lasts 30 days.
+            </li>
+        </ul>
+        <p>You can remove the login cookie at any time by logging out or clearing your browser cookies.</p>
+    </section>
+
+    <section>
+        <h2>4. Your rights &amp; contact</h2>
+        <p>
+            You may request access to, correction of, or deletion of your data. For any data-protection
+            request, contact <a href="mailto:admin@dasmaffin.com">admin@dasmaffin.com</a>.
+        </p>
+    </section>
+</div>

@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using WolflineSquadTTT.Infrastructure;
 using WolflineSquadTTT.Services;
 
 namespace WolflineSquadTTT
@@ -44,9 +46,16 @@ namespace WolflineSquadTTT
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IUserRightService, UserRightService>();
             builder.Services.AddScoped<IPollService, PollService>();
-            builder.Services.AddScoped<IPollOptionService, PollOptionService>(); 
-            builder.Services.AddHttpClient<ISteamService, SteamService>(); 
+            builder.Services.AddScoped<IPollOptionService, PollOptionService>();
+            builder.Services.AddHttpClient<ISteamService, SteamService>();
             builder.Services.AddSingleton<DataWriterService>();
+            builder.Services.AddSingleton<ILoginCookieService, LoginCookieService>();
+
+            // Persist Data Protection keys so login cookies survive app restarts/redeploys.
+            builder.Services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(
+                    Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys")))
+                .SetApplicationName("WolflineSquadTTT");
 
             builder.Services.AddMemoryCache();
             WebApplication app = builder.Build();
@@ -54,6 +63,7 @@ namespace WolflineSquadTTT
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseSession();
+            app.UseMiddleware<LoginCookieMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())

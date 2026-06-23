@@ -11,11 +11,13 @@ namespace WolflineSquadTTT.Controllers
 
         private readonly IUserService _userService;
         private readonly IUserRightService _userRightService;
+        private readonly ILoginCookieService _loginCookieService;
 
-        public AuthController(IUserService userService, IUserRightService userRightService)
+        public AuthController(IUserService userService, IUserRightService userRightService, ILoginCookieService loginCookieService)
         {
             _userService = userService;
             _userRightService = userRightService;
+            _loginCookieService = loginCookieService;
         }
 
         [HttpGet("/auth/steam")]
@@ -76,12 +78,16 @@ namespace WolflineSquadTTT.Controllers
                 JsonSerializer.Serialize(rights.Select(r => r.Right).ToList())
             );
 
+            // Persist the login so the user stays signed in across visits.
+            _loginCookieService.SignIn(Response, steamId);
+
             return RedirectToAction("Index", "Home");
         }
 
         [HttpGet("/auth/logout")]
         public IActionResult Logout()
         {
+            _loginCookieService.SignOut(Response);
             HttpContext.Session.Clear();
             return RedirectToAction("Index", "Home");
         }
