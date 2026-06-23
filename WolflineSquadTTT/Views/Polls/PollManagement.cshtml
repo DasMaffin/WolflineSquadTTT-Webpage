@@ -1,45 +1,70 @@
-﻿@inject IHttpContextAccessor HttpContextAccessor
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 @model PollManagementViewModel
 @{
-    var session = HttpContextAccessor.HttpContext!.Session;
     ViewData["Title"] = "Manage Polls";
+    var session = HttpContextAccessor.HttpContext!.Session;
 }
-@if (PermissionHelper.HasPermission(session, Permission.CreatePoll))
-{
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPollModal">
-        Create Poll
-    </button>
-}
-<!-- Modal -->
-<div class="modal fade" id="createPollModal" tabindex="-1" aria-labelledby="createPollModalLabel" aria-hidden="true">
+
+<div class="poll-panel my-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Manage Polls</h1>
+    <div>
+        @if (PermissionHelper.HasPermission(session, Permission.CreatePoll))
+        {
+            <a class="btn btn-secondary" asp-controller="Rewards" asp-action="RewardManagement">Manage rewards</a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPollModal">Create Poll</button>
+        }
+    </div>
+</div>
+
+<!-- Create modal -->
+<div class="modal fade" id="createPollModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="createPollModalLabel">Add Poll</h1>
+                <h1 class="modal-title fs-5">Add Poll</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form asp-action="CreateNewPoll" method="post">
+            <form asp-action="CreateNewPoll" method="post" class="needs-validation" novalidate>
                 <div class="modal-body">
-                    <!-- content -->
-                    <div class="tab-content mt-3" id="permissionTabsContent">
-                        <label asp-for="NewPoll.Title"></label>
-                        <input asp-for="NewPoll.Title" class="form-control" />
+                    <label class="form-label">Type</label>
+                    <select name="PollType" id="pollTypeSelect" class="form-select" asp-items="Html.GetEnumSelectList<PollType>()"></select>
 
-                        <label asp-for="NewPoll.Description"></label>
-                        <textarea asp-for="NewPoll.Description" class="form-control" rows="3" style="resize: vertical;"></textarea>
+                    <label class="form-label mt-2">Title</label>
+                    <input name="Title" class="form-control" required />
 
-                        <label asp-for="NewPoll.PollType"></label>
-                        <select asp-for="NewPoll.PollType" class="form-select" asp-items="Html.GetEnumSelectList<PollType>()"></select>
+                    <label class="form-label mt-2">Description</label>
+                    <textarea name="Description" class="form-control" rows="3" style="resize: vertical;"></textarea>
 
-                        <label asp-for="NewPoll.Reward.RewardType"></label>
-                        <input asp-for="NewPoll.Reward.RewardType" class="form-control" />
-
-                        <label asp-for="NewPoll.Reward.RewardAmount"></label>
-                        <input asp-for="NewPoll.Reward.RewardAmount" class="form-control" type="number" />
-
-                        <label asp-for="NewPoll.EndDate"></label>
-                        <input asp-for="NewPoll.EndDate" class="form-control" type="date" />
+                    <div id="maxSelectionsGroup" class="mt-2" style="display:none;">
+                        <label class="form-label">Max selections (leave empty for unlimited)</label>
+                        <input name="MaxSelections" type="number" min="1" class="form-control" />
                     </div>
+
+                    <label class="form-label mt-2">Reward</label>
+                    <select name="RewardFK" class="form-select">
+                        <option value="">None</option>
+                        @foreach (Reward reward in Model.Rewards)
+                        {
+                            <option value="@reward.Id">@reward.Name</option>
+                        }
+                    </select>
+
+                    <label class="form-label mt-2">End date (optional)</label>
+                    <input name="EndDate" type="date" class="form-control" />
+
+                    <label class="form-label mt-3">Options</label>
+                    <div id="optionsContainer">
+                        <div class="input-group mb-2">
+                            <input name="Options" class="form-control" placeholder="Option text" required />
+                            <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">✖</button>
+                        </div>
+                        <div class="input-group mb-2">
+                            <input name="Options" class="form-control" placeholder="Option text" required />
+                            <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">✖</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addOption()">➕ Add option</button>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -50,42 +75,133 @@
     </div>
 </div>
 
-@* Polls Grid *@
-<div class="container mt-4">
-    <h3>Existing Polls</h3>
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-        @foreach (Poll poll in Model.ExistingPolls)
+@* Existing polls *@
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    @foreach (Poll poll in Model.ExistingPolls)
+    {
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <span class="badge bg-secondary">@poll.Kind</span>
+                    <h5 class="card-title mt-2">@poll.Title</h5>
+                    <p class="card-text">@poll.Description</p>
+                    <p class="card-text">
+                        <small class="text-muted">Options: @poll.Options.Count</small><br />
+                        <small class="text-muted">Reward: @(poll.Reward?.Name ?? "None")</small><br />
+                        <small class="text-muted">Ends: @(poll.EndDate?.ToString("yyyy-MM-dd") ?? "No date")</small>
+                    </p>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    @if (PermissionHelper.HasPermission(session, Permission.EditPoll))
+                    {
+                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal@(poll.ID)">Edit</button>
+                    }
+                    @if (PermissionHelper.HasPermission(session, Permission.DeletePoll))
+                    {
+                        <form asp-action="DeletePollById" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@poll.ID" />
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this poll?');">Delete</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (PermissionHelper.HasPermission(session, Permission.EditPoll))
         {
-            <div class="col">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">@poll.Title</h5>
-                        <p class="card-text">@poll.Description</p>
-                        <p class="card-text">
-                            <small class="text-muted">Type: @poll.PollType</small><br />
-                            <small class="text-muted">Reward: @poll.Reward.RewardType (@poll.Reward.RewardAmount)</small><br />
-                            <small class="text-muted">Ends: @(poll.EndDate?.ToString("yyyy-MM-dd") ?? "No date")</small>
-                        </p>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        @if (PermissionHelper.HasPermission(session, Permission.EditPoll))
-                        {
-                            <button class="btn btn-sm btn-warning">
-                                <i class="bi bi-pen"></i> Edit
-                            </button>
-                        }
-                        @if (PermissionHelper.HasPermission(session, Permission.DeletePoll))
-                        {
-                            <form asp-action="DeletePollById" method="post" class="d-inline">
-                                <input type="hidden" name="id" value="@poll.ID" />
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this poll?');">
-                                    <i class="bi bi-trash"></i> Delete
-                                </button>
-                            </form>
-                        }
+            <div class="modal fade" id="editModal@(poll.ID)" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5">Edit Poll</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form asp-action="UpdatePoll" method="post" class="needs-validation" novalidate>
+                            <div class="modal-body">
+                                <input type="hidden" name="Id" value="@poll.ID" />
+
+                                <label class="form-label">Title</label>
+                                <input name="Title" class="form-control" value="@poll.Title" required />
+
+                                <label class="form-label mt-2">Description</label>
+                                <textarea name="Description" class="form-control" rows="3" style="resize: vertical;">@poll.Description</textarea>
+
+                                @if (poll is MultiSelectPoll multi)
+                                {
+                                    <label class="form-label mt-2">Max selections (empty = unlimited)</label>
+                                    <input name="MaxSelections" type="number" min="1" class="form-control" value="@(multi.MaxSelections?.ToString())" />
+                                }
+
+                                <label class="form-label mt-2">Reward</label>
+                                <select name="RewardFK" class="form-select">
+                                    <option value="">None</option>
+                                    @foreach (Reward reward in Model.Rewards)
+                                    {
+                                        if (poll.RewardFK == reward.Id)
+                                        {
+                                            <option value="@reward.Id" selected>@reward.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@reward.Id">@reward.Name</option>
+                                        }
+                                    }
+                                </select>
+
+                                <label class="form-label mt-2">End date (optional)</label>
+                                <input name="EndDate" type="date" class="form-control" value="@(poll.EndDate?.ToString("yyyy-MM-dd"))" />
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Save changes</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         }
-    </div>
+    }
 </div>
+</div>
+
+<script>
+    const typeSelect = document.getElementById("pollTypeSelect");
+    const maxGroup = document.getElementById("maxSelectionsGroup");
+    const maxInput = maxGroup.querySelector('[name="MaxSelections"]');
+
+    // Show + enable "max selections" only for MultiSelect polls (enum value 1);
+    // disabling when hidden keeps it out of validation and submission.
+    function toggleMax() {
+        const show = typeSelect.value === "1";
+        maxGroup.style.display = show ? "block" : "none";
+        maxInput.disabled = !show;
+    }
+    typeSelect.addEventListener("change", toggleMax);
+    toggleMax();
+
+    function addOption() {
+        const container = document.getElementById("optionsContainer");
+        const row = document.createElement("div");
+        row.className = "input-group mb-2";
+        row.innerHTML = '<input name="Options" class="form-control" placeholder="Option text" required />' +
+            '<button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">✖</button>';
+        container.appendChild(row);
+    }
+
+    function removeOption(btn) {
+        const container = document.getElementById("optionsContainer");
+        if (container.querySelectorAll(".input-group").length <= 2) return; // keep at least two options
+        btn.parentElement.remove();
+    }
+
+    // Block submission and show red outlines until all required fields are filled.
+    document.querySelectorAll("form.needs-validation").forEach(form => {
+        form.addEventListener("submit", e => {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            form.classList.add("was-validated");
+        });
+    });
+</script>

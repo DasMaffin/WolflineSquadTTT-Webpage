@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WolflineSquadTTT.Models
@@ -11,6 +11,9 @@ namespace WolflineSquadTTT.Models
         [Required]
         [MaxLength(255)]
         public string OptionDescription { get; set; } = null!;
+
+        // Stable display order within the poll.
+        public int DisplayOrder { get; set; }
 
         // Foreign Key
         [Required]

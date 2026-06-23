@@ -59,6 +59,16 @@ footer.footer a:hover {
     padding-bottom:4px;
 }
 
+.poll-panel {
+    /* No transform/filter/backdrop-filter here: those create a containing block that
+       traps Bootstrap modals (the backdrop would cover the modal). */
+    background-color: rgba(20, 22, 28, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 28px 32px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
 a[target="_blank"]:not(:has(img))::after {
     content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAQElEQVR42qXKwQkAIAxDUUdxtO6/RBQkQZvSi8I/pL4BoGw/XPkh4XigPmsUgh0626AjRsgxHTkUThsG2T/sIlzdTsp52kSS1wAAAABJRU5ErkJggg==);
     margin: 0 3px 0 5px;

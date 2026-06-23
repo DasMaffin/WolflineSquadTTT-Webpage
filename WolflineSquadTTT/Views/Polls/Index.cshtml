@@ -1,0 +1,57 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@model PollListViewModel
+@{
+    ViewData["Title"] = "Polls";
+    var session = HttpContextAccessor.HttpContext!.Session;
+    bool canManage = PermissionHelper.HasPermission(session, Permission.CreatePoll)
+        || PermissionHelper.HasPermission(session, Permission.EditPoll)
+        || PermissionHelper.HasPermission(session, Permission.DeletePoll);
+}
+
+<div class="poll-panel my-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Polls</h1>
+        @if (canManage)
+        {
+            <a class="btn btn-secondary" asp-controller="Polls" asp-action="PollManagement">Manage polls</a>
+        }
+    </div>
+
+    @if (!Model.Polls.Any())
+    {
+        <p class="text-muted">There are no open polls right now.</p>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (Poll poll in Model.Polls)
+            {
+                bool answered = Model.AnsweredPollIds.Contains(poll.ID);
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <span class="badge bg-secondary">@poll.Kind</span>
+                            <h5 class="card-title mt-2">@poll.Title</h5>
+                            <p class="card-text">@poll.Description</p>
+                            @if (poll.Reward != null)
+                            {
+                                <p class="card-text"><small class="text-muted">Reward: @poll.Reward.Name</small></p>
+                            }
+                            <p class="card-text"><small class="text-muted">Ends: @(poll.EndDate?.ToString("yyyy-MM-dd") ?? "No end date")</small></p>
+                        </div>
+                        <div class="card-footer">
+                            @if (answered)
+                            {
+                                <a class="btn btn-sm btn-outline-info" asp-action="Results" asp-route-id="@poll.ID">View results</a>
+                            }
+                            else
+                            {
+                                <a class="btn btn-sm btn-primary" asp-action="Answer" asp-route-id="@poll.ID">Answer</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

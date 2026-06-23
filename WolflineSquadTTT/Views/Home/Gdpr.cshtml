@@ -128,6 +128,17 @@
                     Umfragen
                 </button>
             </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-body"
+                        id="Belohnungen-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#Belohnungen"
+                        type="button"
+                        role="tab">
+                    Belohnungen
+                </button>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -215,14 +226,40 @@
                  role="tabpanel">
                 <h3>Website: Umfragen (Polls)</h3>
                 <ul>
-                    <li>Antwort(en) bei einer Umfrage.</li>
+                    <li>Die von dir gewählte(n) Antwort(en) einer Umfrage</li>
+                    <li>Bei Ranking-Umfragen zusätzlich die von dir vergebene Platzierung der Antworten</li>
+                    <li>Zeitpunkt der Teilnahme</li>
+                    <li>Verknüpfung mit deinem Benutzerkonto (interne Benutzer-ID bzw. SteamID)</li>
                 </ul>
                 <p>
                     Umfragen werden vom Betreiberteam der Website erstellt und verwaltet.
-                    Es handelt sich nicht um nutzergenerierte Inhalte.
+                    Es handelt sich nicht um nutzergenerierte Inhalte. Eine Teilnahme ist nur
+                    angemeldeten Nutzern möglich.
                 </p>
             </div>
-        </div>        
+
+            <div class="tab-pane fade"
+                 id="Belohnungen"
+                 role="tabpanel">
+                <h3>Website: Belohnungen (Rewards)</h3>
+                <ul>
+                    <li>
+                        Für die Teilnahme an einer Umfrage kann eine Belohnung in Form von
+                        In-Game-Währung (Garry's Mod: normale Punkte und Premium-Punkte) gewährt werden.
+                    </li>
+                    <li>
+                        Gespeichert wird, dass deinem Konto (interne Benutzer-ID bzw. SteamID) für eine
+                        bestimmte Umfrage eine Belohnung zusteht, sowie ob diese bereits ausgezahlt wurde.
+                    </li>
+                    <li>
+                        Der Garry's-Mod-Server fragt offene Belohnungen anhand der SteamID ab und zahlt sie
+                        im Spiel aus. Das Markieren als „ausgezahlt“ ist durch einen geheimen API-Schlüssel
+                        geschützt, sodass dies nur durch den Spielserver erfolgen kann.
+                    </li>
+                    <li>Keine Weitergabe an Dritte</li>
+                </ul>
+            </div>
+        </div>
     </section>
     <br />
     <section>

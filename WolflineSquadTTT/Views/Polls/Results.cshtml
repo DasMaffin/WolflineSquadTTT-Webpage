@@ -1,0 +1,41 @@
+@model PollResultsViewModel
+@{
+    Poll poll = Model.Poll;
+    ViewData["Title"] = $"Results: {poll.Title}";
+    bool ranked = poll.Kind == PollType.Ranking;
+    int totalVotes = Model.Results.Sum(r => r.VoteCount);
+}
+
+<div class="poll-panel my-4">
+    <h1>@poll.Title</h1>
+    <p class="text-muted">@poll.Kind poll &middot; @totalVotes vote(s)</p>
+    <p>@poll.Description</p>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Option</th>
+                <th>Votes</th>
+                @if (ranked)
+                {
+                    <th>Avg. placement</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (OptionResult result in (ranked ? Model.Results.OrderBy(r => r.AveragePlacement ?? double.MaxValue) : Model.Results.OrderByDescending(r => r.VoteCount)))
+            {
+                <tr>
+                    <td>@result.OptionDescription</td>
+                    <td>@result.VoteCount</td>
+                    @if (ranked)
+                    {
+                        <td>@(result.AveragePlacement?.ToString("0.00") ?? "—")</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <a class="btn btn-secondary" asp-action="Index">Back to polls</a>
+</div>

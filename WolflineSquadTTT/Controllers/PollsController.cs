@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
@@ -10,20 +10,74 @@ namespace WolflineSquadTTT.Controllers
     public class PollsController : Controller
     {
         private readonly IPollService _pollService;
-        public PollsController(IPollService pollService)
+        private readonly IRewardService _rewardService;
+        private readonly IUserService _userService;
+
+        public PollsController(IPollService pollService, IRewardService rewardService, IUserService userService)
         {
             _pollService = pollService;
+            _rewardService = rewardService;
+            _userService = userService;
         }
 
-        public IActionResult Main()
+        [RequiresPermission(Permission.ViewPolls)]
+        public async Task<IActionResult> Index()
         {
-            return View();
+            User user = await CurrentUserAsync();
+
+            PollListViewModel model = new PollListViewModel
+            {
+                Polls = await _pollService.GetOpenPollsAsync(),
+                AnsweredPollIds = await _pollService.GetAnsweredPollIdsAsync(user.Id)
+            };
+
+            return View(model);
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
+        [HttpGet("/Polls/Answer/{id}")]
+        [RequiresPermission(Permission.ViewPolls)]
+        public async Task<IActionResult> Answer(int id)
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            Poll? poll = await _pollService.GetPollWithOptionsAsync(id);
+            if (poll == null)
+                return NotFound();
+
+            User user = await CurrentUserAsync();
+            if (await _pollService.HasUserAnsweredAsync(id, user.Id))
+                return RedirectToAction("Results", new { id });
+
+            return View(new PollAnswerViewModel { Poll = poll });
+        }
+
+        [HttpPost("/Polls/Answer/{id}")]
+        [ValidateAntiForgeryToken]
+        [RequiresPermission(Permission.ViewPolls)]
+        public async Task<IActionResult> Answer(int id, List<int> optionIds)
+        {
+            User user = await CurrentUserAsync();
+
+            try
+            {
+                await _pollService.SubmitAnswerAsync(id, user.Id, optionIds ?? new List<int>());
+            }
+            catch (InvalidOperationException ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction("Answer", new { id });
+            }
+
+            return RedirectToAction("Results", new { id });
+        }
+
+        [HttpGet("/Polls/Results/{id}")]
+        [RequiresPermission(Permission.ViewPolls)]
+        public async Task<IActionResult> Results(int id)
+        {
+            PollResultsViewModel? model = await _pollService.GetResultsAsync(id);
+            if (model == null)
+                return NotFound();
+
+            return View(model);
         }
 
         [RequiresPermission([Permission.CreatePoll, Permission.EditPoll, Permission.DeletePoll], Mode = PermissionMode.Or)]
@@ -33,7 +87,7 @@ namespace WolflineSquadTTT.Controllers
             PollManagementViewModel model = new PollManagementViewModel
             {
                 ExistingPolls = await _pollService.GetAllPollsAsync(),
-                NewPoll = new Poll()
+                Rewards = await _rewardService.GetAllRewardsAsync()
             };
             return View(model);
         }
@@ -41,25 +95,51 @@ namespace WolflineSquadTTT.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequiresPermission(Permission.CreatePoll)]
-        public async Task<IActionResult> CreateNewPoll(PollManagementViewModel model)
+        public async Task<IActionResult> CreateNewPoll(CreatePollViewModel model)
         {
             if (!ModelState.IsValid)
-                return View(model);
+                return RedirectToAction("PollManagement");
 
-            var poll = new Poll
+            List<string> options = (model.Options ?? new List<string>())
+                .Select(o => o?.Trim() ?? string.Empty)
+                .Where(o => o.Length > 0)
+                .ToList();
+
+            Poll poll = model.PollType switch
             {
-                Title = model.NewPoll!.Title,
-                Description = model.NewPoll.Description,
-                PollType = model.NewPoll.PollType,
-                Reward = new PollReward
-                {
-                    RewardType = model.NewPoll.Reward.RewardType,
-                    RewardAmount = model.NewPoll.Reward.RewardAmount
-                },
-                EndDate = model.NewPoll.EndDate
+                PollType.MultiSelect => new MultiSelectPoll { MaxSelections = model.MaxSelections },
+                PollType.Ranking => new RankingPoll(),
+                _ => new BasicPoll()
             };
 
-            await _pollService.CreateNewPoll(poll, new List<PollOption>());
+            poll.Title = model.Title;
+            poll.Description = model.Description ?? string.Empty;
+            poll.EndDate = model.EndDate;
+            poll.RewardFK = model.RewardFK;
+
+            for (int i = 0; i < options.Count; i++)
+                poll.Options.Add(new PollOption { OptionDescription = options[i], DisplayOrder = i });
+
+            await _pollService.CreatePollAsync(poll);
+
+            return RedirectToAction("PollManagement");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequiresPermission(Permission.EditPoll)]
+        public async Task<IActionResult> UpdatePoll(EditPollViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return RedirectToAction("PollManagement");
+
+            await _pollService.UpdatePollAsync(
+                model.Id,
+                model.Title,
+                model.Description ?? string.Empty,
+                model.EndDate,
+                model.RewardFK,
+                model.MaxSelections);
 
             return RedirectToAction("PollManagement");
         }
@@ -73,14 +153,16 @@ namespace WolflineSquadTTT.Controllers
             return RedirectToAction("PollManagement");
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [RequiresPermission(Permission.EditPoll)]
-        public async Task<IActionResult> UpdatePoll(Poll editedPoll)
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
         {
-            if (!ModelState.IsValid)
-                return RedirectToAction("PollManagement");
-            throw new NotImplementedException();
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private async Task<User> CurrentUserAsync()
+        {
+            string steamId = HttpContext.Session.GetString("SteamID") ?? "";
+            return await _userService.GetUserBySteamId(steamId);
         }
     }
 }

@@ -28,6 +28,10 @@ namespace WolflineSquadTTT.Models.Enums
         /// Allows user to view play time statistics of everyone else.
         /// </summary>
         [PermissionGroup("Administrative")] ViewPlayerActivity = 6,
+        /// <summary>
+        /// Allows user to view and answer polls.
+        /// </summary>
+        [PermissionGroup("Poll")] ViewPolls = 7,
 
         /// <summary>
         /// Allows user to do anything. Use with caution!

@@ -1,8 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WolflineSquadTTT.Models
 {
+    // Connecting table: which option a user picked for a poll. One row per picked option.
+    [Index(nameof(UserFK), nameof(PollOptionFK), IsUnique = true)]
     public class UserPollOptionVote
     {
         [Key]
@@ -23,9 +26,10 @@ namespace WolflineSquadTTT.Models
         public User User { get; set; } = null!;
 
         /// <summary>
-        /// Nullable rank for polls that allow ranking.
-        /// Lower number = higher preference, like a leaderboard.
+        /// Placement for ranking polls (1 = most liked). Null for basic/multi-select polls.
         /// </summary>
-        public int? Rank { get; set; }
+        public int? Placement { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
