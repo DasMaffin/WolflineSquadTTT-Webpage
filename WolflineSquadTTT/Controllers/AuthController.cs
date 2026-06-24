@@ -23,17 +23,30 @@ namespace WolflineSquadTTT.Controllers
             _gmodAuthTokenService = gmodAuthTokenService;
         }
 
-        [HttpGet("/auth/steam")]
-        public IActionResult SteamLogin()
+        // Shown when a not-logged-in user hits gated content. returnUrl is where to send them after login.
+        [HttpGet("/auth/login")]
+        public IActionResult Login(string? returnUrl = null)
         {
-            string returnUrl = Url.Action("SteamCallback", "Auth", null, Request.Scheme) ?? "";
+            ViewData["ReturnUrl"] = !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) ? returnUrl : "/";
+            return View();
+        }
+
+        [HttpGet("/auth/steam")]
+        public IActionResult SteamLogin(string? returnUrl = null)
+        {
+            string callbackUrl = Url.Action("SteamCallback", "Auth", null, Request.Scheme) ?? "";
+
+            // Carry the post-login destination through the Steam round-trip via the return_to URL.
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                callbackUrl += "?returnUrl=" + Uri.EscapeDataString(returnUrl);
+
             string realm = $"{Request.Scheme}://{Request.Host}";
 
             Dictionary<string, string> query = new Dictionary<string, string>
             {
                 ["openid.ns"] = "http://specs.openid.net/auth/2.0",
                 ["openid.mode"] = "checkid_setup",
-                ["openid.return_to"] = returnUrl,
+                ["openid.return_to"] = callbackUrl,
                 ["openid.realm"] = realm,
                 ["openid.identity"] = "http://specs.openid.net/auth/2.0/identifier_select",
                 ["openid.claimed_id"] = "http://specs.openid.net/auth/2.0/identifier_select"
@@ -71,6 +84,10 @@ namespace WolflineSquadTTT.Controllers
             string steamId = claimedId.Split('/').Last();
 
             await SignInAsync(steamId);
+
+            string returnUrl = Request.Query["returnUrl"].ToString();
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
 
             return RedirectToAction("Index", "Home");
         }

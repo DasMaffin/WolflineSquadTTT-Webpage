@@ -1,0 +1,12 @@
+@{
+    ViewData["Title"] = "Please log in";
+    string returnUrl = ViewData["ReturnUrl"] as string ?? "/";
+}
+
+<div class="poll-panel my-5" style="max-width: 520px; margin-inline: auto; text-align: center;">
+    <h1 class="h3 mb-3">Please log in to view this content</h1>
+    <p class="text-muted mb-4">You need to be signed in with Steam to access this page.</p>
+    <a asp-controller="Auth" asp-action="SteamLogin" asp-route-returnUrl="@returnUrl" class="steam-login-button d-inline-block">
+        <img src="/images/steam/sits_01.png" alt="Login with Steam" height="48" />
+    </a>
+</div>

@@ -29,6 +29,9 @@ All in the current build; the running instance must be restarted/redeployed:
   Add-Poll client validation, button-visibility + modal-backdrop fixes.
 - Home/layout: SteamID moved to the footer (bottom-right, every page); home page shows the logged-in
   user's unanswered open polls. No DB migration.
+- Login gate: not-logged-in users hitting gated pages now go to `/auth/login` ("Please log in" + Steam
+  button) and are returned to the original page after login (`returnUrl` threaded through Steam OpenID).
+  No DB migration.
 
 ## Runtime / host
 - `DataProtection-Keys/` is created under the app content root at runtime (gitignored). The host path

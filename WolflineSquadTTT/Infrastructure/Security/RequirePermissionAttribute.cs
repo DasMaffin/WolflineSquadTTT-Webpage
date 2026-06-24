@@ -42,10 +42,11 @@ namespace WolflineSquadTTT.Infrastructure.Security
         {
             ISession session = context.HttpContext.Session;
 
-            // Not logged in
+            // Not logged in → send to the login page, remembering where they were headed.
             if (!session.Keys.Contains("UserRights"))
             {
-                context.Result = new RedirectToActionResult("Index", "Home", null);// TODO Add a site prompting login.
+                string returnUrl = $"{context.HttpContext.Request.Path}{context.HttpContext.Request.QueryString}";
+                context.Result = new RedirectResult("/auth/login?returnUrl=" + Uri.EscapeDataString(returnUrl));
                 return;
             }
 
@@ -61,7 +62,8 @@ namespace WolflineSquadTTT.Infrastructure.Security
 
             if (!allowed)
             {
-                context.Result = new RedirectToActionResult("Index", "Home", null);// TODO Add a site prompting login.
+                // Logged in but lacks the permission → back to Home.
+                context.Result = new RedirectToActionResult("Index", "Home", null);
             }
         }
     }
