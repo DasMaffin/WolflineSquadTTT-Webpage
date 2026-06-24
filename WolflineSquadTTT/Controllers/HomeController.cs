@@ -1,21 +1,38 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using WolflineSquadTTT.Models;
+using WolflineSquadTTT.Services;
 
 namespace WolflineSquadTTT.Controllers
 {
     public class HomeController : Controller
     {
         private readonly IWebHostEnvironment _env;
-        public HomeController(IWebHostEnvironment env)
+        private readonly IPollService _pollService;
+        private readonly IUserService _userService;
+        public HomeController(IWebHostEnvironment env, IPollService pollService, IUserService userService)
         {
             _env = env;
+            _pollService = pollService;
+            _userService = userService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             ViewData["Environment"] = _env.EnvironmentName;
-            return View();
+
+            HomeViewModel model = new HomeViewModel();
+
+            string steamId = HttpContext.Session.GetString("SteamID") ?? "";
+            if (!string.IsNullOrEmpty(steamId))
+            {
+                User user = await _userService.CreateNewOrFetchBySteamIdAsync(steamId);
+                List<Poll> openPolls = await _pollService.GetOpenPollsAsync();
+                HashSet<int> answered = await _pollService.GetAnsweredPollIdsAsync(user.Id);
+                model.UnansweredPolls = openPolls.Where(p => !answered.Contains(p.ID)).ToList();
+            }
+
+            return View(model);
         }
 
         [Route("Privacy")]

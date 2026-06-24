@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using WolflineSquadTTT.Infrastructure;
 using WolflineSquadTTT.Models;
 
 namespace WolflineSquadTTT.Services
@@ -15,10 +17,12 @@ namespace WolflineSquadTTT.Services
     {
         private readonly AppDbContext _db;
         private readonly IUserService _userService;
-        public UserRightService(AppDbContext db, IUserService userService)
+        private readonly IMemoryCache _cache;
+        public UserRightService(AppDbContext db, IUserService userService, IMemoryCache cache)
         {
             _userService = userService;
             _db = db;
+            _cache = cache;
         }
 
         public async Task<List<UserRight>> GetUserRightsAsync(User user)
@@ -48,6 +52,8 @@ namespace WolflineSquadTTT.Services
                 Right = perm
             });
             await _db.SaveChangesAsync();
+
+            _cache.Remove(UserRightsCache.Key(steamId)); // live permission updates
         }
 
         public async Task RemoveAllUserRights(string steamId)
@@ -59,6 +65,8 @@ namespace WolflineSquadTTT.Services
             await _db.UserRight
                 .Where(ur => ur.UserFK == user.Id)
                 .ExecuteDeleteAsync();
+
+            _cache.Remove(UserRightsCache.Key(steamId)); // live permission updates
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
 using WolflineSquadTTT.Services;
 
@@ -12,12 +13,14 @@ namespace WolflineSquadTTT.Controllers
         private readonly IUserService _userService;
         private readonly IUserRightService _userRightService;
         private readonly ILoginCookieService _loginCookieService;
+        private readonly IGmodAuthTokenService _gmodAuthTokenService;
 
-        public AuthController(IUserService userService, IUserRightService userRightService, ILoginCookieService loginCookieService)
+        public AuthController(IUserService userService, IUserRightService userRightService, ILoginCookieService loginCookieService, IGmodAuthTokenService gmodAuthTokenService)
         {
             _userService = userService;
             _userRightService = userRightService;
             _loginCookieService = loginCookieService;
+            _gmodAuthTokenService = gmodAuthTokenService;
         }
 
         [HttpGet("/auth/steam")]
@@ -67,19 +70,7 @@ namespace WolflineSquadTTT.Controllers
             string claimedId = Request.Query["openid.claimed_id"].ToString();
             string steamId = claimedId.Split('/').Last();
 
-            // Save session
-            HttpContext.Session.SetString("SteamID", steamId);
-
-            User user = await _userService.CreateNewOrFetchBySteamIdAsync(steamId);
-            List<UserRight> rights = await _userRightService.GetUserRightsAsync(steamId);
-
-            HttpContext.Session.SetString(
-                "UserRights",
-                JsonSerializer.Serialize(rights.Select(r => r.Right).ToList())
-            );
-
-            // Persist the login so the user stays signed in across visits.
-            _loginCookieService.SignIn(Response, steamId);
+            await SignInAsync(steamId);
 
             return RedirectToAction("Index", "Home");
         }
@@ -90,6 +81,51 @@ namespace WolflineSquadTTT.Controllers
             _loginCookieService.SignOut(Response);
             HttpContext.Session.Clear();
             return RedirectToAction("Index", "Home");
+        }
+
+        // Called by the Garry's Mod server (authenticated by its API key) to mint a short-lived,
+        // signed token for a player's SteamID. The server then hands it to that one client.
+        [HttpPost("/auth/gmod/token")]
+        [RequiresApiPrivateKey]
+        public IActionResult GmodToken([FromBody] GmodTokenRequest request)
+        {
+            if (request == null || !ulong.TryParse(request.SteamId, out _))
+                return BadRequest("A valid SteamID64 is required.");
+
+            string token = _gmodAuthTokenService.CreateToken(request.SteamId);
+            return Ok(new { token });
+        }
+
+        // Opened by the in-game browser with the token. Validates it and establishes the login so
+        // the embedded browser is signed in without the Steam login button. Invalid/expired tokens
+        // just fall through to the normal (logged-out) site.
+        [HttpGet("/auth/gmod")]
+        public async Task<IActionResult> GmodLogin(string token, string? returnUrl = null)
+        {
+            string? steamId = _gmodAuthTokenService.Validate(token);
+            if (steamId == null)
+                return RedirectToAction("Index", "Home");
+
+            await SignInAsync(steamId);
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        private async Task SignInAsync(string steamId)
+        {
+            await _userService.CreateNewOrFetchBySteamIdAsync(steamId);
+            List<UserRight> rights = await _userRightService.GetUserRightsAsync(steamId);
+
+            HttpContext.Session.SetString("SteamID", steamId);
+            HttpContext.Session.SetString(
+                "UserRights",
+                JsonSerializer.Serialize(rights.Select(r => r.Right).ToList())
+            );
+
+            _loginCookieService.SignIn(Response, steamId);
         }
     }
 }

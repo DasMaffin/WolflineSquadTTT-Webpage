@@ -50,6 +50,7 @@ namespace WolflineSquadTTT
             builder.Services.AddHttpClient<ISteamService, SteamService>();
             builder.Services.AddSingleton<DataWriterService>();
             builder.Services.AddSingleton<ILoginCookieService, LoginCookieService>();
+            builder.Services.AddSingleton<IGmodAuthTokenService, GmodAuthTokenService>();
 
             // Persist Data Protection keys so login cookies survive app restarts/redeploys.
             builder.Services.AddDataProtection()

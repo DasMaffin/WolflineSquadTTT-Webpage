@@ -5,8 +5,14 @@ namespace WolflineSquadTTT.Infrastructure.Security
 {
     public static class PermissionHelper
     {
+        // Permissions every user has implicitly, without an admin granting them.
+        public static readonly HashSet<int> DefaultPermissions = new() { (int)Permission.ViewPolls };
+
         public static bool HasPermission(ISession session, Permission permission)
         {
+            if (DefaultPermissions.Contains((int)permission))
+                return true;
+
             string? json = session.GetString("UserRights");
             if (string.IsNullOrEmpty(json))
                 return false;

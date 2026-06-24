@@ -6,12 +6,13 @@ There are three: one to report Golden Deagle shots, and two for the poll reward 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | `POST` | `/api/GoldenDeagleShots` | API key | Record a Golden Deagle shot event |
-| `GET`  | `/rewards/{steamId}` | **none (open)** | List a player's unclaimed poll rewards |
+| `GET`  | `/rewards/pending` | API key | List **all** unclaimed rewards |
+| `GET`  | `/rewards/pending/{rewardType}` | API key | List unclaimed rewards of one type (e.g. `GarrysMod`) |
 | `POST` | `/rewards/claim` | API key | Mark rewards as handed out |
 
 ## Base URL
 
-- **Production:** `https://<your-deployed-domain>`
+- **Production:** `https://mwlp.dasmaffin.com`
 - **Local dev:** `http://localhost:5000`
 
 All paths below are relative to the base URL. Use HTTPS in production.
@@ -20,23 +21,24 @@ All paths below are relative to the base URL. Use HTTPS in production.
 
 ## Authentication
 
-Protected endpoints (`POST /api/GoldenDeagleShots` and `POST /rewards/claim`) require a
-**private API key** sent **inside the JSON body** as a field named `apiPrivateKey`.
+Every endpoint requires a **private API key**. Send it in the **`X-Api-Key` header**:
 
-- The key must be a **GUID** (e.g. `11111111-1111-1111-1111-111111111111`).
+```
+X-Api-Key: 11111111-1111-1111-1111-111111111111
+```
+
+- The key must be a **GUID**.
 - Valid keys are configured server-side under `ApiPrivateKeys` in `appsettings.{Environment}.json`.
   Ask the site operator for a key; it is **not** published here.
-- The key goes in the body, **not** a header or query string.
-
-The open endpoint (`GET /rewards/{steamId}`) needs no key — reading a player's pending rewards is
-harmless, but **claiming** is locked down so players can't mark their own rewards as paid.
+- For convenience, the `POST` endpoints also accept the key as an `apiPrivateKey` field in the JSON
+  body instead of the header. The header is preferred and is the only option for `GET`.
 
 ### Auth error responses
 
 | Status | Meaning |
 |--------|---------|
-| `401 Unauthorized` | Body was empty, or `apiPrivateKey` was missing / not a valid GUID |
-| `403 Forbidden` | `apiPrivateKey` is a valid GUID but not in the server's allowed list |
+| `401 Unauthorized` | No key supplied (missing/blank `X-Api-Key` header and no body key), or it isn't a valid GUID |
+| `403 Forbidden` | Key is a valid GUID but not in the server's allowed list |
 | `500` | Server has no API keys configured (operator misconfiguration) |
 
 ---
@@ -52,7 +54,6 @@ harassment.
 
 ```json
 {
-  "apiPrivateKey": "11111111-1111-1111-1111-111111111111",
   "Player": "76561198000000000",
   "Timestamp": 1750000000,
   "ShotAt": "76561198111111111",
@@ -62,7 +63,6 @@ harassment.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `apiPrivateKey` | string (GUID) | Your API key |
 | `Player` | string | SteamID64 of the shooter |
 | `Timestamp` | integer | Unix time (seconds) of the shot |
 | `ShotAt` | string | SteamID64 of the victim |
@@ -83,12 +83,12 @@ HTTP({
     method  = "POST",
     url     = BASE_URL .. "/api/GoldenDeagleShots",
     type    = "application/json",
+    headers = { ["X-Api-Key"] = API_KEY },
     body    = util.TableToJSON({
-        apiPrivateKey = API_KEY,
-        Player        = shooter:SteamID64(),
-        Timestamp     = os.time(),
-        ShotAt        = victim:SteamID64(),
-        VictimWas     = victimRoleId
+        Player    = shooter:SteamID64(),
+        Timestamp = os.time(),
+        ShotAt    = victim:SteamID64(),
+        VictimWas = victimRoleId
     }),
     success = function(code, body) end,
     failed  = function(reason) print("[WLSQ] shot report failed: " .. reason) end
@@ -97,13 +97,15 @@ HTTP({
 
 ---
 
-## 2. List a player's unclaimed rewards
+## 2. List unclaimed rewards
 
-**`GET /rewards/{steamId}`** — open, no auth.
+**`GET /rewards/pending`** — auth required. Returns **every** unclaimed reward across all players.
 
-`{steamId}` is the player's **SteamID64**. Returns every reward the player has earned (by
-answering a poll that had a reward attached) and **not yet claimed**. Returns an empty array `[]`
-if there are none or the player is unknown.
+**`GET /rewards/pending/{rewardType}`** — same, but only rewards of one type, so your server pulls
+only what it can hand out (e.g. `GET /rewards/pending/GarrysMod`). `{rewardType}` is the reward
+type name (case-insensitive); currently the only value is `GarrysMod`.
+
+Either form returns an empty array `[]` when there's nothing pending.
 
 ### Response — `200 OK`
 
@@ -111,46 +113,46 @@ if there are none or the player is unknown.
 [
   {
     "id": 12,
-    "reward": "Daily Poll Bonus",
+    "steamId": "76561198000000000",
     "rewardType": "GarrysMod",
     "normalPoints": 100,
-    "premiumPoints": 5,
-    "pollId": 3,
-    "pollTitle": "Wie sehr stinkt Exe?",
-    "createdAt": "2026-06-23T11:30:00Z"
+    "premiumPoints": 5
   }
 ]
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | integer | **Reward-claim id** — use this to mark it claimed (endpoint 3) |
-| `reward` | string | Reward name |
-| `rewardType` | string | Platform; currently always `"GarrysMod"` |
+| `id` | integer | **Reward-claim id** — send this back to mark it claimed (endpoint 3) |
+| `steamId` | string | SteamID64 of the player to credit |
+| `rewardType` | string | Reward type; currently always `"GarrysMod"` |
 | `normalPoints` | integer | Normal currency to grant |
 | `premiumPoints` | integer | Premium currency to grant |
-| `pollId` | integer | The poll that earned the reward |
-| `pollTitle` | string | The poll's title |
-| `createdAt` | string (ISO-8601 UTC) | When the reward was earned |
 
 The website only stores *what* to give; the game server decides *how* to grant the points.
 
 ### Lua example
 
 ```lua
-http.Fetch(BASE_URL .. "/rewards/" .. ply:SteamID64(),
+http.Fetch(BASE_URL .. "/rewards/pending/GarrysMod",
     function(body, len, headers, code)
         if code ~= 200 then return end
-        local rewards = util.JSONToTable(body)
+        local rewards = util.JSONToTable(body) or {}
         local claimedIds = {}
         for _, r in ipairs(rewards) do
-            ply:AddPoints(r.normalPoints)          -- your currency hooks
-            ply:AddPremiumPoints(r.premiumPoints)
+            local ply = player.GetBySteamID64(r.steamId)
+            if IsValid(ply) then
+                ply:AddPoints(r.normalPoints)              -- your currency hooks
+                ply:AddPremiumPoints(r.premiumPoints)
+            else
+                GrantOffline(r.steamId, r.normalPoints, r.premiumPoints)  -- persist for later
+            end
             table.insert(claimedIds, r.id)
         end
         if #claimedIds > 0 then MarkClaimed(claimedIds) end  -- see endpoint 3
     end,
-    function(err) print("[WLSQ] reward fetch failed: " .. err) end
+    function(err) print("[WLSQ] reward fetch failed: " .. err) end,
+    { ["X-Api-Key"] = API_KEY }
 )
 ```
 
@@ -160,23 +162,20 @@ http.Fetch(BASE_URL .. "/rewards/" .. ply:SteamID64(),
 
 **`POST /rewards/claim`** — auth required.
 
-Call this **after** you've actually granted the points in-game, so the player can't collect the
-same reward twice. Only rewards that are currently unclaimed are affected; unknown or
-already-claimed ids are ignored.
+Call this **after** you've actually granted the points, so a reward can't be handed out twice.
+Only rewards that are currently unclaimed are affected; unknown or already-claimed ids are ignored.
 
 ### Request body
 
 ```json
 {
-  "apiPrivateKey": "11111111-1111-1111-1111-111111111111",
   "ids": [12, 13, 14]
 }
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `apiPrivateKey` | string (GUID) | Your API key |
-| `ids` | array of integers | Reward-claim ids (the `id` values from endpoint 2) |
+| `ids` | array of integers | Reward-claim ids (the `id` values from endpoint 2). One id is fine: `[12]`. |
 
 ### Responses
 
@@ -192,7 +191,8 @@ function MarkClaimed(ids)
         method  = "POST",
         url     = BASE_URL .. "/rewards/claim",
         type    = "application/json",
-        body    = util.TableToJSON({ apiPrivateKey = API_KEY, ids = ids }),
+        headers = { ["X-Api-Key"] = API_KEY },
+        body    = util.TableToJSON({ ids = ids }),
         success = function(code, body)
             if code == 200 then
                 local data = util.JSONToTable(body)
@@ -210,18 +210,19 @@ end
 
 1. A player answers a poll on the website that has a reward attached → the site records an
    unclaimed reward for that player's SteamID.
-2. The GMod server periodically (e.g. on player spawn/connect) calls
-   **`GET /rewards/{steamId64}`** to fetch pending rewards.
-3. For each reward, the server grants `normalPoints` / `premiumPoints` to the player.
+2. The GMod server periodically (e.g. on a timer) calls **`GET /rewards/pending/GarrysMod`** once to
+   fetch all unclaimed rewards of its type.
+3. For each reward, the server grants `normalPoints` / `premiumPoints` to the player identified by
+   its `steamId`.
 4. The server calls **`POST /rewards/claim`** with the granted `id`s so they aren't handed out again.
 
 ## Notes
 
-- **SteamID format:** always SteamID64 (the long numeric form, `Player:SteamID64()`), both in
-  request paths and bodies.
-- **JSON only:** use GMod's structured `HTTP({ ... })` with `type = "application/json"`. The
-  simpler `http.Post` sends form-encoded data, which these endpoints do **not** accept.
+- **SteamID format:** always SteamID64 (the long numeric form, `Player:SteamID64()`), in request
+  bodies and responses.
+- **JSON only:** use GMod's structured `HTTP({ ... })` with `type = "application/json"` for the
+  POSTs. The simpler `http.Post` sends form-encoded data, which these endpoints do **not** accept.
 - **Claim after granting:** grant points first, then claim. If a claim call fails, the reward stays
-  pending and will be returned again next fetch (so worst case a player gets it on the next pass,
-  never lost — but make sure your grant step is idempotent if you claim before granting).
+  pending and is returned again next sweep (so worst case it's granted on the next pass, never lost
+  — make your grant step idempotent if you claim before granting).
 - **Keep the key secret:** it's effectively the password for writing data; never ship it to clients.

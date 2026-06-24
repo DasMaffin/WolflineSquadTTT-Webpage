@@ -1,20 +1,36 @@
-﻿@using Microsoft.AspNetCore.Http
-@inject IHttpContextAccessor HttpContextAccessor
+@model HomeViewModel
 @{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
+<div class="text-center my-4">
     <h1 class="display-4">Welcome to WolflineSquad!</h1>
 </div>
-@if (HttpContextAccessor?.HttpContext?.Session.GetString("SteamID") != null)
+
+@if (Model.UnansweredPolls.Any())
 {
-    <p>SteamID: @HttpContextAccessor.HttpContext.Session.GetString("SteamID")</p>
-}
-else
-{
-    <p>Not logged in</p>
-}
-@{
-    string env = ViewData["Environment"]?.ToString() ?? "Unknown";
+    <div class="poll-panel my-4">
+        <h2 class="mb-3">Polls awaiting your answer</h2>
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (Poll poll in Model.UnansweredPolls)
+            {
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <span class="badge bg-secondary">@poll.Kind</span>
+                            <h5 class="card-title mt-2">@poll.Title</h5>
+                            <p class="card-text">@poll.Description</p>
+                            @if (poll.Reward != null)
+                            {
+                                <p class="card-text"><small class="text-muted">Reward: @poll.Reward.Name</small></p>
+                            }
+                        </div>
+                        <div class="card-footer">
+                            <a class="btn btn-sm btn-primary" asp-controller="Polls" asp-action="Answer" asp-route-id="@poll.ID">Answer</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
 }

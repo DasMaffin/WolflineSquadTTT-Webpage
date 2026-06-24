@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
+using WolflineSquadTTT.Models.Enums;
 using WolflineSquadTTT.Services;
 
 namespace WolflineSquadTTT.Controllers
 {
-    // Consumed by the Garry's Mod server. GET is intentionally open so the game server can
-    // query a player's pending rewards; claiming requires the shared API key so only the
-    // game server (not players) can mark rewards as handed out.
+    // Consumed by the Garry's Mod server. The server fetches every unclaimed reward in one call,
+    // hands them out, then marks them claimed. Both endpoints require the shared API key so only
+    // the game server (not players) can read the full list or mark rewards as handed out.
     [ApiController]
     [Route("rewards")]
     public class RewardApiController : ControllerBase
@@ -18,21 +19,20 @@ namespace WolflineSquadTTT.Controllers
             _rewardService = rewardService;
         }
 
-        [HttpGet("{steamId}")]
-        public async Task<IActionResult> Get(string steamId)
+        [HttpGet("pending")]
+        [HttpGet("pending/{rewardType}")]
+        [RequiresApiPrivateKey]
+        public async Task<IActionResult> Pending(RewardType? rewardType = null)
         {
-            List<RewardClaim> claims = await _rewardService.GetUnclaimedBySteamIdAsync(steamId);
+            List<RewardClaim> claims = await _rewardService.GetAllUnclaimedAsync(rewardType);
 
             var result = claims.Select(c => new
             {
                 id = c.Id,
-                reward = c.Reward.Name,
+                steamId = c.User.SteamId,
                 rewardType = c.Reward.RewardType.ToString(),
                 normalPoints = c.Reward.NormalPoints,
-                premiumPoints = c.Reward.PremiumPoints,
-                pollId = c.PollFK,
-                pollTitle = c.Poll.Title,
-                createdAt = c.CreatedAt
+                premiumPoints = c.Reward.PremiumPoints
             });
 
             return Ok(result);

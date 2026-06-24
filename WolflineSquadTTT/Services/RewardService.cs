@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WolflineSquadTTT.Models;
+using WolflineSquadTTT.Models.Enums;
 
 namespace WolflineSquadTTT.Services
 {
@@ -7,7 +8,7 @@ namespace WolflineSquadTTT.Services
     {
         Task<List<Reward>> GetAllRewardsAsync();
         Task CreateRewardAsync(Reward reward);
-        Task<List<RewardClaim>> GetUnclaimedBySteamIdAsync(string steamId);
+        Task<List<RewardClaim>> GetAllUnclaimedAsync(RewardType? rewardType = null);
         Task<int> MarkClaimedAsync(List<int> claimIds);
     }
 
@@ -32,12 +33,17 @@ namespace WolflineSquadTTT.Services
             await _db.SaveChangesAsync();
         }
 
-        public async Task<List<RewardClaim>> GetUnclaimedBySteamIdAsync(string steamId)
+        public async Task<List<RewardClaim>> GetAllUnclaimedAsync(RewardType? rewardType = null)
         {
-            return await _db.RewardClaim
+            IQueryable<RewardClaim> query = _db.RewardClaim
                 .Include(rc => rc.Reward)
-                .Include(rc => rc.Poll)
-                .Where(rc => !rc.Claimed && rc.User.SteamId == steamId)
+                .Include(rc => rc.User)
+                .Where(rc => !rc.Claimed);
+
+            if (rewardType != null)
+                query = query.Where(rc => rc.Reward.RewardType == rewardType.Value);
+
+            return await query
                 .OrderBy(rc => rc.CreatedAt)
                 .ToListAsync();
         }

@@ -49,15 +49,15 @@ namespace WolflineSquadTTT.Infrastructure.Security
                 return;
             }
 
-            string json = session.GetString("UserRights") ?? "";    // TODO Fix bug: If rights are changed while user is logged in user needs to log back in.
+            string json = session.GetString("UserRights") ?? "";    // Kept fresh each request by LoginCookieMiddleware (per-user cache invalidated on rights change) — updates are live.
             List<int> rights = JsonSerializer.Deserialize<List<int>>(json!) ?? new();
 
             if (rights.Contains((int)Permission.SuperAdministrator))
                 return;
 
             bool allowed = Mode == PermissionMode.And
-                ? Permissions.All(p => rights.Contains(p))
-                : Permissions.Any(p => rights.Contains(p));
+                ? Permissions.All(p => rights.Contains(p) || PermissionHelper.DefaultPermissions.Contains(p))
+                : Permissions.Any(p => rights.Contains(p) || PermissionHelper.DefaultPermissions.Contains(p));
 
             if (!allowed)
             {

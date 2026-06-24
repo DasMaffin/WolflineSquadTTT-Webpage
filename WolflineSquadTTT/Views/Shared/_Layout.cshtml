@@ -176,8 +176,14 @@
     </div>
 
     <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - WolflineSquadTTT - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a> - <a asp-area="" asp-controller="Home" asp-action="Gdpr">GDPR</a>
+        <div class="container d-flex justify-content-between">
+            <div>
+                &copy; 2026 - WolflineSquadTTT - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a> - <a asp-area="" asp-controller="Home" asp-action="Gdpr">GDPR</a>
+            </div>
+            @if (HttpContextAccessor?.HttpContext?.Session.GetString("SteamID") != null)
+            {
+                <div>SteamID: @HttpContextAccessor.HttpContext.Session.GetString("SteamID")</div>
+            }
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
