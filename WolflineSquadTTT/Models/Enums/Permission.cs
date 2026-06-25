@@ -40,6 +40,14 @@ namespace WolflineSquadTTT.Models.Enums
         /// Allows user to view other players' Pointshop 2 inventories.
         /// </summary>
         [PermissionGroup("Pointshop 2")] ViewInventories = 9,
+        /// <summary>
+        /// Allows user to add and manage webhooks (e.g. market notifications).
+        /// </summary>
+        [PermissionGroup("Webhooks")] AddWebhooks = 10,
+        /// <summary>
+        /// Allows user to view the Pointshop 2 transaction history.
+        /// </summary>
+        [PermissionGroup("Pointshop 2")] ViewTransactions = 11,
 
         /// <summary>
         /// Allows user to do anything. Use with caution!

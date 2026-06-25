@@ -1,0 +1,83 @@
+@model WebhookIndexViewModel
+@using WolflineSquadTTT.Models.Enums
+@{
+    ViewData["Title"] = "Webhooks";
+}
+
+<div class="poll-panel my-4">
+    <h1 class="mb-3">Webhooks</h1>
+    <p class="text-muted">Webhooks POST a message to an external URL (e.g. a Discord channel webhook) when their event fires.</p>
+
+    @if (TempData["WebhookAdded"] != null)
+    {
+        <div class="alert alert-success">@TempData["WebhookAdded"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <form asp-action="Add" method="post" class="row g-2 align-items-end mb-4">
+        @Html.AntiForgeryToken()
+        <div class="col-md-3">
+            <label class="form-label" for="name">Name (optional)</label>
+            <input type="text" class="form-control" id="name" name="name" maxlength="100" placeholder="e.g. Market channel" />
+        </div>
+        <div class="col-md-5">
+            <label class="form-label" for="url">Webhook URL</label>
+            <input type="url" class="form-control" id="url" name="url" maxlength="500" placeholder="https://discord.com/api/webhooks/…" required />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="eventType">Event</label>
+            <select class="form-select" id="eventType" name="eventType">
+                @foreach (WebhookEvent evt in Enum.GetValues<WebhookEvent>())
+                {
+                    <option value="@evt">@WebhookIndexViewModel.EventLabel(evt)</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Add webhook</button>
+        </div>
+    </form>
+
+    @if (!Model.Webhooks.Any())
+    {
+        <p class="text-muted">No webhooks configured yet.</p>
+    }
+    else
+    {
+        <table class="table table-dark table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Name</th>
+                    <th>URL</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (Webhook hook in Model.Webhooks)
+                {
+                    string masked = hook.Url;
+                    if (Uri.TryCreate(hook.Url, UriKind.Absolute, out Uri? u))
+                    {
+                        masked = $"{u.Host}{(u.AbsolutePath.Length > 18 ? u.AbsolutePath.Substring(0, 18) : u.AbsolutePath)}…";
+                    }
+                    <tr>
+                        <td>@WebhookIndexViewModel.EventLabel(hook.Event)</td>
+                        <td>@(string.IsNullOrEmpty(hook.Name) ? "—" : hook.Name)</td>
+                        <td><code class="text-info">@masked</code></td>
+                        <td class="text-end">
+                            <form asp-action="Delete" method="post" onsubmit="return confirm('Delete this webhook?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@hook.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

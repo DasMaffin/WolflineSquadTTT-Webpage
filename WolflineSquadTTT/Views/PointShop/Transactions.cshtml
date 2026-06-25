@@ -1,0 +1,48 @@
+@model TransactionHistoryViewModel
+@using WolflineSquadTTT.Models.Enums
+@{
+    ViewData["Title"] = "Transaction history";
+}
+
+<div class="poll-panel my-4">
+    <h1 class="mb-3">Transaction history</h1>
+    <p class="text-muted">Every market transaction, newest first.</p>
+
+    @if (!Model.Transactions.Any())
+    {
+        <p class="text-muted">No transactions yet.</p>
+    }
+    else
+    {
+        <table class="table table-dark table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Item</th>
+                    <th>Player</th>
+                    <th class="text-end">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (TransactionRow t in Model.Transactions)
+                {
+                    string badge = t.Type switch
+                    {
+                        TransactionType.Added => "bg-secondary",
+                        TransactionType.Bought => "bg-success",
+                        TransactionType.Removed => "bg-danger",
+                        _ => "bg-secondary"
+                    };
+                    <tr>
+                        <td class="text-muted">@t.OccurredAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><span class="badge @badge">@t.Type</span></td>
+                        <td>@t.ItemName</td>
+                        <td>@t.PlayerName</td>
+                        <td class="text-end">@(t.Price.HasValue ? t.Price.Value.ToString("N0") + " pts" : "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

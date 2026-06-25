@@ -24,5 +24,9 @@ namespace WolflineSquadTTT
         public DbSet<RewardClaim> RewardClaim => Set<RewardClaim>();
 
         public DbSet<MarketListing> MarketListing => Set<MarketListing>();
+
+        public DbSet<Webhook> Webhook => Set<Webhook>();
+
+        public DbSet<PointShopTransaction> PointShopTransaction => Set<PointShopTransaction>();
     }
 }

@@ -16,12 +16,57 @@ are made; check items off once they're live. Most recent first.
   sale outcome; indexes on `Status` + `SellerSteamId`). New-table-only.
   - Dev DB (`mwlp_webpage_dev`): ⬜ apply (`dotnet ef database update`).
   - Prod DB (`mwlp_webpage_prod`): ⬜ apply at deploy.
+- **`AddWebhooks`** (2026-06-26) — adds the `Webhook` table (website DB; `Name`, `Url`, `Event`, `Enabled`,
+  `CreatedBySteamId`, `CreatedAt`; index on `Event`) for the webhook system. New-table-only.
+  - Dev + Prod: ⬜ apply (`dotnet ef database update`).
+- **`AddTransactions`** (2026-06-26) — adds the `PointShopTransaction` table (website DB; `OccurredAt`, `Type`
+  Added/Bought/Removed, `ItemName`, `SteamId`, `Price`; index on `OccurredAt`) — the market transaction log.
+  New-table-only.
+  - Dev + Prod: ⬜ apply (`dotnet ef database update`).
 - The Pointshop 2 inventory page itself is read-only against the `GMod` DB and adds no migration; the
   inventory **unequip** and **market** features only need *runtime* write privileges on the game DB (below),
   not a schema migration there.
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
+- Market buy error reporting (2026-06-26): `MarketService.ExecuteSaleAsync` now returns a 3-way `SaleOutcome`
+  (`Ok` / `InsufficientFunds` / `Error`) instead of a bare bool, so a buy only reports **"You don't have enough
+  points"** when the buyer genuinely can't pay (the `ps2_wallet` debit affects 0 rows). Any other failure (null
+  player/inventory, a thrown game-DB write — e.g. a **missing grant**) now reports a generic error instead of
+  masquerading as insufficient funds. `BuyAsync` maps `InsufficientFunds`→that message, everything else→`Error`;
+  `AuctionCloserService` treats any non-`Ok` as "winner couldn't pay → return the item". ⚠️ The observed
+  "not enough points" on a buyer who **had** enough was this misreport — the underlying cause is almost
+  certainly the **`GModDb` user lacking `UPDATE ON GMod.ps2_wallet` and/or `INSERT ON GMod.maffinapi_item_slots`**
+  (the list flow never touches `ps2_wallet`, so buy is the first action to need it). **Apply the game-DB grants
+  in Runtime/host below**, then re-test a buy. Code-only, no migration.
+- Market transaction-history button (2026-06-26): the market page (`/pointshop2/market`) shows a **"Transaction
+  history"** button in the topbar for users holding `ViewTransactions` (`MarketIndexViewModel.CanViewTransactions`,
+  set via `PermissionHelper.HasPermission`). Links to `/pointshop2/transactions`. Code-only, no migration.
+- Inline "Add webhook" buttons (2026-06-26): `AddWebhooks` holders now get an **Add webhook** button right on the
+  page that owns each event — the **market** page (`/pointshop2/market`, event `MarketListingCreated`) and the
+  **poll management** page (`/PollManagement`, event `PollCreated`) — opening a modal pre-scoped to that event.
+  New shared partial `Views/Shared/_AddWebhookModal.cshtml` (driven by `AddWebhookModalViewModel`); permission
+  checked inline in each view via `PermissionHelper.HasPermission(Context.Session, Permission.AddWebhooks)`.
+  `WebhooksController.Add` now takes an optional **`returnUrl`** (local-only via `Url.IsLocalUrl`) so it returns
+  the user to the originating page instead of `/webhooks`, and sets `TempData["WebhookAdded"]` on success (alerts
+  rendered on the market / poll / webhooks pages). The standalone `/webhooks` page is unchanged. No new data is
+  collected (same webhook dispatch as before, no PII) and no migration — the `AddWebhooks` migration already
+  covers the `Webhook` table.
+- Transaction history (2026-06-26): new permission **`ViewTransactions` (enum=11, group "Pointshop 2")** +
+  **`GET /pointshop2/transactions`** — a time-ordered table of market transactions (Added/Bought/Removed,
+  item, player name, price; SteamID→name via batched `SteamService`). `MarketService` appends a
+  `PointShopTransaction` row on list/buy/auction-win/cancel/expire (best-effort, never breaks a trade). Needs
+  the `AddTransactions` migration. Privacy/GDPR updated (transactions logged, staff-viewable).
+- Poll webhook (2026-06-26): new `WebhookEvent.PollCreated`, dispatched from `PollService.CreatePollAsync`
+  ("New poll: {title}"). No migration.
+- Market points (2026-06-26): the market page shows the signed-in user's points balance (`IPointShopService.
+  GetPointsAsync`) so you don't have to switch to the inventory. No migration.
+- Webhooks (2026-06-26): new permission **`AddWebhooks` (enum=10, group "Webhooks")** + `/webhooks` management
+  page (`WebhooksController`, `[RequiresPermission(AddWebhooks)]`, add/list/delete) + "Webhooks" nav link for
+  holders. `IWebhookService` stores `Webhook` rows and fires a **Discord-compatible `{"content":…}` POST** on
+  events; first event **`MarketListingCreated`** dispatched from `MarketService` after a successful listing
+  (item + price + type only, **no player PII**; failures swallowed, never block the listing). Needs the
+  `AddWebhooks` migration. No GModDb grant (website DB only).
 - Resilience (2026-06-25): a DB outage (or any unhandled error) now renders the styled **/Home/Error** page
   **showing the real exception message + type** instead of a raw host 500 (full stack trace included only in
   Development, via `IExceptionHandlerPathFeature`). `UseExceptionHandler` moved to the **top** of the pipeline
@@ -71,6 +116,11 @@ All in the current build; the running instance must be restarted/redeployed:
     to all connected GMod servers. Contract in `GMOD_WEBSOCKET.md`. **No website DB migration.**
     - ⚠️ **The `GModDb` user now needs WRITE access**: `UPDATE` on `GMod.ps2_equipmentslot` and
       `GMod.kinv_items` (it was read-only `SELECT`). Until granted, unequip returns 400/throws.
+  - Item slots (2026-06-26): the inventory grid now reads **`GMod.maffinapi_item_slots`** (`itemId`→`slot`,
+    **1-based**, a slot holds a **stack** so items sharing a slot collapse to one tile + count) to place tiles
+    in real positions. The website **writes** it: assigns the lowest free slot when an item enters an inventory
+    (market buy/return) and deletes the row on escrow — so the `GModDb` user needs `INSERT/UPDATE/DELETE` on
+    that table. Degrades to ordered fill when a player has no slot rows. **Test on `GModTest`.**
     - ⚠️ **Test against `GModTest` first** (same-schema copy) before pointing at live `GMod` — this mutates
       real inventories and couldn't be tested from here (read-only access).
 - Pointshop 2 market (2026-06-25): `/pointshop2/market` (`MarketController`) — **Index is public/guest-viewable**
@@ -118,9 +168,10 @@ All in the current build; the running instance must be restarted/redeployed:
   page — point it at the game DB (`Server=5.182.204.32;Port=27000;Database=GMod;User=...;Password=...`).
   Base `appsettings.json` carries a placeholder only. Privileges the user needs:
   `SELECT ON GMod.*` (read the inventory) **plus** `UPDATE` on `GMod.ps2_equipmentslot` (unequip),
-  `GMod.kinv_items` (unequip + market escrow/transfer) and `GMod.ps2_wallet` (market points transfer).
-  Still no DDL/migration on that schema.
+  `GMod.kinv_items` (unequip + market escrow/transfer), `GMod.ps2_wallet` (market points transfer), and
+  **`INSERT, UPDATE, DELETE` on `GMod.maffinapi_item_slots`** (the website assigns the first free grid slot
+  when an item lands in an inventory, and frees it on escrow). Still no DDL/migration on that schema.
 
 ## Repo-only (no deploy)
-- `GMOD_API.md`, `GMOD_AUTH.md`, `DEPLOY.md` — docs.
+- `GMOD_API.md`, `GMOD_AUTH.md`, `GMOD_WEBSOCKET.md`, `GMOD_MARKET.md`, `DEPLOY.md` — docs.
 - `gmod/` — reference GMod Lua (server + client) that consumes the APIs; runs on the game server, not the website.

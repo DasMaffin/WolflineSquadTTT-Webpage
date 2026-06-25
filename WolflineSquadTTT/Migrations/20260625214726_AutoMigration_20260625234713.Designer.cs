@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WolflineSquadTTT;
 
@@ -11,9 +12,11 @@ using WolflineSquadTTT;
 namespace WolflineSquadTTT.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260625214726_AutoMigration_20260625234713")]
+    partial class AutoMigration_20260625234713
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -94,40 +97,6 @@ namespace WolflineSquadTTT.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("MarketListing");
-                });
-
-            modelBuilder.Entity("WolflineSquadTTT.Models.PointShopTransaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ItemName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<DateTime>("OccurredAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<long?>("Price")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("SteamId")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OccurredAt");
-
-                    b.ToTable("PointShopTransaction");
                 });
 
             modelBuilder.Entity("WolflineSquadTTT.Models.Poll", b =>
@@ -329,44 +298,6 @@ namespace WolflineSquadTTT.Migrations
                     b.HasIndex("UserFK");
 
                     b.ToTable("UserRight");
-                });
-
-            modelBuilder.Entity("WolflineSquadTTT.Models.Webhook", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBySteamId")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)");
-
-                    b.Property<bool>("Enabled")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("Event")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Event");
-
-                    b.ToTable("Webhook");
                 });
 
             modelBuilder.Entity("WolflineSquadTTT.Models.BasicPoll", b =>

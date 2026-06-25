@@ -14,22 +14,30 @@ namespace WolflineSquadTTT.Controllers
 
         private readonly IMarketService _market;
         private readonly IGmodSocketHub _hub;
+        private readonly IPointShopService _pointShopService;
 
-        public MarketController(IMarketService market, IGmodSocketHub hub)
+        public MarketController(IMarketService market, IGmodSocketHub hub, IPointShopService pointShopService)
         {
             _market = market;
             _hub = hub;
+            _pointShopService = pointShopService;
         }
 
         [HttpGet("")]
         public async Task<IActionResult> Index()
         {
             string steamId = HttpContext.Session.GetString("SteamID") ?? "";
+            bool loggedIn = !string.IsNullOrEmpty(steamId);
+
             MarketIndexViewModel model = new MarketIndexViewModel
             {
                 Listings = await _market.GetActiveListingsAsync(steamId),
                 SocketConnected = _hub.HasActiveConnection,
-                IsLoggedIn = !string.IsNullOrEmpty(steamId)
+                IsLoggedIn = loggedIn,
+                Points = loggedIn && ulong.TryParse(steamId, out ulong steam64)
+                    ? await _pointShopService.GetPointsAsync(steam64)
+                    : 0,
+                CanViewTransactions = PermissionHelper.HasPermission(HttpContext.Session, Permission.ViewTransactions)
             };
             return View(model);
         }

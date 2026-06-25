@@ -22,9 +22,11 @@ namespace WolflineSquadTTT.Services
     public class PollService : IPollService
     {
         private readonly AppDbContext _db;
-        public PollService(AppDbContext db)
+        private readonly IWebhookService _webhookService;
+        public PollService(AppDbContext db, IWebhookService webhookService)
         {
             _db = db;
+            _webhookService = webhookService;
         }
 
         public async Task<List<Poll>> GetAllPollsAsync()
@@ -58,6 +60,7 @@ namespace WolflineSquadTTT.Services
         {
             await _db.Poll.AddAsync(poll);
             await _db.SaveChangesAsync();
+            await _webhookService.DispatchAsync(WebhookEvent.PollCreated, $"New poll: {poll.Title}");
         }
 
         public async Task UpdatePollAsync(int pollId, string title, string description, DateTime? endDate, int? rewardFK, int? maxSelections)

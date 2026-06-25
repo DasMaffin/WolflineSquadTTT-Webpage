@@ -11,7 +11,8 @@ namespace WolflineSquadTTT.Models
         public long EasterEggs { get; set; }
         public int NumSlots { get; set; }
 
-        public List<PointShopItem> Items { get; set; } = new();          // unequipped — fill the grid
+        public List<PointShopItem> Items { get; set; } = new();          // unequipped (for the legend + counts)
+        public List<PointShopItem?> Grid { get; set; } = new();          // items placed by slot; null = empty cell
         public List<PointShopEquipSlot> Equipment { get; set; } = new(); // equipped, by slot
 
         public int FilledSlots => Items.Sum(i => i.Quantity);
@@ -26,6 +27,9 @@ namespace WolflineSquadTTT.Models
 
         // The GMod kinv_items.id of one instance in this (possibly stacked) tile — used to sell on the market.
         public int KinvItemId { get; set; }
+
+        // Grid slot from maffinapi_item_slots; null when the item has no assigned slot (then it stacks).
+        public int? Slot { get; set; }
 
         // A short, unique-per-type key used to colour the tile (see site.css .ps-type-*).
         public string TypeKey => TypeKeyFor(BaseClass);

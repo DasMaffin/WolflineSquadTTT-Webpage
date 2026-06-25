@@ -59,6 +59,12 @@
                                 <a class="nav-link" asp-area="" asp-controller="Administration" asp-action="PermissionManagement">Permissions</a>
                             </li>
                         }
+                        @if (PermissionHelper.HasPermission(HttpContextAccessor.HttpContext!.Session, Permission.AddWebhooks))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Webhooks" asp-action="Index">Webhooks</a>
+                            </li>
+                        }
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#steamWorkshopModal">Workshop Items</a>
                         </li>

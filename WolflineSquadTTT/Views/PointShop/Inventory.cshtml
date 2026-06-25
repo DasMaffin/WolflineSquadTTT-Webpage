@@ -56,8 +56,6 @@
     }
     else
     {
-        int totalCells = Math.Max(Model.NumSlots, Model.Items.Count);
-
         @if (Model.IsSelf)
         {
             @Html.AntiForgeryToken()
@@ -70,18 +68,17 @@
                     <span class="text-muted">@Model.FilledSlots / @Model.NumSlots slots</span>
                 </div>
                 <div class="ps-grid">
-                    @for (int i = 0; i < totalCells; i++)
+                    @foreach (PointShopItem? cell in Model.Grid)
                     {
-                        if (i < Model.Items.Count)
+                        if (cell != null)
                         {
-                            PointShopItem item = Model.Items[i];
-                            <div class="ps-slot filled ps-type-@item.TypeKey"
-                                 data-kinv-id="@item.KinvItemId" data-item-name="@item.Name"
-                                 title="@item.Name@(item.Category != null ? " — " + item.Category : "")">
-                                <span class="ps-name">@item.Name</span>
-                                @if (item.Quantity > 1)
+                            <div class="ps-slot filled ps-type-@cell.TypeKey"
+                                 data-kinv-id="@cell.KinvItemId" data-item-name="@cell.Name"
+                                 title="@cell.Name@(cell.Category != null ? " — " + cell.Category : "")">
+                                <span class="ps-name">@cell.Name</span>
+                                @if (cell.Quantity > 1)
                                 {
-                                    <span class="ps-qty">@item.Quantity</span>
+                                    <span class="ps-qty">@cell.Quantity</span>
                                 }
                             </div>
                         }

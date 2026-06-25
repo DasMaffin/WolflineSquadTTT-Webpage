@@ -6,19 +6,43 @@
 <div class="poll-panel my-4 ps-inventory">
     <div class="ps-topbar">
         <div class="ps-title">Market</div>
-        @if (Model.IsLoggedIn)
-        {
-            <a class="btn btn-outline-light btn-sm" asp-controller="PointShop" asp-action="Inventory">My inventory</a>
-        }
-        else
-        {
-            <a class="btn btn-outline-light btn-sm" href="/auth/steam">Log in to trade</a>
-        }
+        <div class="d-flex align-items-center gap-2">
+            @if (Model.CanViewTransactions)
+            {
+                <a class="btn btn-outline-light btn-sm" asp-controller="PointShop" asp-action="Transactions">Transaction history</a>
+            }
+            @if (PermissionHelper.HasPermission(Context.Session, Permission.AddWebhooks))
+            {
+                @await Html.PartialAsync("_AddWebhookModal", new AddWebhookModalViewModel
+                {
+                    Event = WebhookEvent.MarketListingCreated,
+                    ReturnUrl = $"{Context.Request.Path}{Context.Request.QueryString}"
+                })
+            }
+            @if (Model.IsLoggedIn)
+            {
+                <span class="ps-cur points" title="Your points balance">@Model.Points.ToString("N0") Points</span>
+                <a class="btn btn-outline-light btn-sm" asp-controller="PointShop" asp-action="Inventory">My inventory</a>
+            }
+            else
+            {
+                <a class="btn btn-outline-light btn-sm" href="/auth/steam">Log in to trade</a>
+            }
+        </div>
     </div>
 
     @if (Model.IsLoggedIn)
     {
         @Html.AntiForgeryToken()
+    }
+
+    @if (TempData["WebhookAdded"] != null)
+    {
+        <div class="alert alert-success">@TempData["WebhookAdded"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
     }
 
     @if (!Model.SocketConnected)

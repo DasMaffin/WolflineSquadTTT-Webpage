@@ -7,6 +7,8 @@ namespace WolflineSquadTTT.Models
         public List<MarketListingViewModel> Listings { get; set; } = new();
         public bool SocketConnected { get; set; }
         public bool IsLoggedIn { get; set; }
+        public long Points { get; set; }
+        public bool CanViewTransactions { get; set; }
     }
 
     public class MarketListingViewModel

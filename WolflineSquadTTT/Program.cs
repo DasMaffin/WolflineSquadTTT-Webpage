@@ -53,6 +53,7 @@ namespace WolflineSquadTTT
             builder.Services.AddScoped<IRewardService, RewardService>();
             builder.Services.AddScoped<IPointShopService, PointShopService>();
             builder.Services.AddScoped<IMarketService, MarketService>();
+            builder.Services.AddScoped<IWebhookService, WebhookService>();
             builder.Services.AddHostedService<AuctionCloserService>();
             builder.Services.AddSingleton<ISteamNameCache, SteamNameCache>();
             builder.Services.AddHttpClient<ISteamService, SteamService>();

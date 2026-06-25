@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using WolflineSquadTTT.Infrastructure.Security;
 using WolflineSquadTTT.Models;
 using WolflineSquadTTT.Models.Enums;
@@ -11,11 +12,15 @@ namespace WolflineSquadTTT.Controllers
     {
         private readonly IPointShopService _pointShopService;
         private readonly IGmodSocketHub _socketHub;
+        private readonly AppDbContext _db;
+        private readonly ISteamService _steamService;
 
-        public PointShopController(IPointShopService pointShopService, IGmodSocketHub socketHub)
+        public PointShopController(IPointShopService pointShopService, IGmodSocketHub socketHub, AppDbContext db, ISteamService steamService)
         {
             _pointShopService = pointShopService;
             _socketHub = socketHub;
+            _db = db;
+            _steamService = steamService;
         }
 
         [HttpGet]
@@ -70,6 +75,38 @@ namespace WolflineSquadTTT.Controllers
 
             await _socketHub.NotifyReloadInventoryAsync(steamId);
             return Ok();
+        }
+
+        [HttpGet]
+        [Route("transactions")]
+        [RequiresPermission(Permission.ViewTransactions)]
+        public async Task<IActionResult> Transactions()
+        {
+            List<PointShopTransaction> log = await _db.PointShopTransaction
+                .OrderByDescending(t => t.OccurredAt)
+                .Take(500)
+                .ToListAsync();
+
+            List<ulong> ids = log
+                .Select(t => ulong.TryParse(t.SteamId, out ulong s) ? s : 0UL)
+                .Where(s => s != 0)
+                .Distinct()
+                .ToList();
+            Dictionary<ulong, string> names = await _steamService.GetPrettyNamesAsync(ids);
+
+            TransactionHistoryViewModel model = new TransactionHistoryViewModel
+            {
+                Transactions = log.Select(t => new TransactionRow
+                {
+                    OccurredAt = t.OccurredAt,
+                    Type = t.Type,
+                    ItemName = t.ItemName,
+                    SteamId = t.SteamId,
+                    PlayerName = ulong.TryParse(t.SteamId, out ulong s) && names.TryGetValue(s, out string? n) ? n : t.SteamId,
+                    Price = t.Price
+                }).ToList()
+            };
+            return View(model);
         }
     }
 }

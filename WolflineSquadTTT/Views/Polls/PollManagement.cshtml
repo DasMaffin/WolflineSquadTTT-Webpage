@@ -9,6 +9,15 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Manage Polls</h1>
     <div>
+        @if (PermissionHelper.HasPermission(session, Permission.AddWebhooks))
+        {
+            @await Html.PartialAsync("_AddWebhookModal", new AddWebhookModalViewModel
+            {
+                Event = WebhookEvent.PollCreated,
+                ReturnUrl = $"{Context.Request.Path}{Context.Request.QueryString}",
+                ButtonClass = "btn btn-secondary"
+            })
+        }
         @if (PermissionHelper.HasPermission(session, Permission.CreatePoll))
         {
             <a class="btn btn-secondary" asp-controller="Rewards" asp-action="RewardManagement">Manage rewards</a>
@@ -16,6 +25,15 @@
         }
     </div>
 </div>
+
+@if (TempData["WebhookAdded"] != null)
+{
+    <div class="alert alert-success">@TempData["WebhookAdded"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
 
 <!-- Create modal -->
 <div class="modal fade" id="createPollModal" tabindex="-1" aria-hidden="true">

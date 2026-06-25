@@ -25,12 +25,14 @@ namespace WolflineSquadTTT.Services
     {
         private readonly AppDbContext _db;
         private readonly IGmodSocketHub _hub;
+        private readonly IWebhookService _webhookService;
         private readonly string _connectionString;
 
-        public MarketService(AppDbContext db, IConfiguration config, IGmodSocketHub hub)
+        public MarketService(AppDbContext db, IConfiguration config, IGmodSocketHub hub, IWebhookService webhookService)
         {
             _db = db;
             _hub = hub;
+            _webhookService = webhookService;
             _connectionString = config.GetConnectionString("GModDb")
                 ?? throw new InvalidOperationException("Missing connection string 'GModDb'.");
         }
@@ -70,55 +72,26 @@ namespace WolflineSquadTTT.Services
             int? pid = await GetPlayerIdAsync(conn, null, sellerSteam64);
             if (pid == null) return MarketActionResult.InvalidItem;
 
+            // Read + verify the item is in the seller's inventory (no write yet).
             int itemPersistenceId;
             string itemName, baseClass;
             string? category;
-
-            await using MySqlTransaction tx = await conn.BeginTransactionAsync();
-            try
+            await using (MySqlCommand cmd = new MySqlCommand(ItemForSaleSql, conn))
             {
-                // Verify the item is in the seller's inventory and grab its display fields.
-                await using (MySqlCommand cmd = new MySqlCommand(ItemForSaleSql, conn, tx))
-                {
-                    cmd.Parameters.AddWithValue("@kinv", kinvItemId);
-                    cmd.Parameters.AddWithValue("@pid", pid.Value);
-                    await using MySqlDataReader reader = await cmd.ExecuteReaderAsync();
-                    if (!await reader.ReadAsync())
-                    {
-                        await tx.RollbackAsync();
-                        return MarketActionResult.InvalidItem;   // not theirs / equipped / already listed
-                    }
+                cmd.Parameters.AddWithValue("@kinv", kinvItemId);
+                cmd.Parameters.AddWithValue("@pid", pid.Value);
+                await using MySqlDataReader reader = await cmd.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                    return MarketActionResult.InvalidItem;   // not theirs / equipped / already listed
 
-                    itemPersistenceId = reader.GetInt32(0);
-                    itemName = reader.GetString(1);
-                    baseClass = reader.GetString(2);
-                    category = reader.IsDBNull(3) ? null : reader.GetString(3);
-                }
-
-                // Escrow: pull it out of the inventory.
-                int escrowed;
-                await using (MySqlCommand cmd = new MySqlCommand(
-                    "UPDATE kinv_items SET inventory_id = NULL WHERE id = @kinv AND inventory_id IN (SELECT id FROM inventories WHERE ownerId = @pid);", conn, tx))
-                {
-                    cmd.Parameters.AddWithValue("@kinv", kinvItemId);
-                    cmd.Parameters.AddWithValue("@pid", pid.Value);
-                    escrowed = await cmd.ExecuteNonQueryAsync();
-                }
-
-                if (escrowed != 1)
-                {
-                    await tx.RollbackAsync();
-                    return MarketActionResult.InvalidItem;
-                }
-
-                await tx.CommitAsync();
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                throw;
+                itemPersistenceId = reader.GetInt32(0);
+                itemName = reader.GetString(1);
+                baseClass = reader.GetString(2);
+                category = reader.IsDBNull(3) ? null : reader.GetString(3);
             }
 
+            // Create the listing FIRST (the website-DB write — the likelier failure point). If it throws,
+            // nothing has been escrowed yet, so the item stays safely in the player's inventory.
             MarketListing listing = new MarketListing
             {
                 SellerSteamId = sellerId,
@@ -138,7 +111,54 @@ namespace WolflineSquadTTT.Services
             _db.MarketListing.Add(listing);
             await _db.SaveChangesAsync();
 
+            // Escrow the item out of the inventory AND free its grid slot in ONE transaction. If either step
+            // fails, the whole thing rolls back so the item is never pulled out without the slot also being
+            // cleared — i.e. no orphan. The website listing is then undone too.
+            bool escrowed = false;
+            await using (MySqlTransaction tx = await conn.BeginTransactionAsync())
+            {
+                try
+                {
+                    int affected;
+                    await using (MySqlCommand cmd = new MySqlCommand(
+                        "UPDATE kinv_items SET inventory_id = NULL WHERE id = @kinv AND inventory_id IN (SELECT id FROM inventories WHERE ownerId = @pid);", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@kinv", kinvItemId);
+                        cmd.Parameters.AddWithValue("@pid", pid.Value);
+                        affected = await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    if (affected == 1)
+                    {
+                        await FreeSlotAsync(conn, tx, kinvItemId);
+                        await tx.CommitAsync();
+                        escrowed = true;
+                    }
+                    else
+                    {
+                        await tx.RollbackAsync();   // item not in inventory / already listed
+                    }
+                }
+                catch
+                {
+                    await tx.RollbackAsync();   // e.g. missing slot-table grant — leaves the item untouched
+                }
+            }
+
+            if (!escrowed)
+            {
+                _db.MarketListing.Remove(listing);
+                await _db.SaveChangesAsync();
+                return MarketActionResult.InvalidItem;
+            }
+
             await _hub.NotifyReloadInventoryAsync(sellerId);
+            await LogTransactionAsync(TransactionType.Added, itemName, sellerId, price);
+
+            string kind = type == MarketListingType.Auction ? "Auction" : "Sale";
+            await _webhookService.DispatchAsync(WebhookEvent.MarketListingCreated,
+                $"New on the market: {itemName} — {price:N0} points ({kind})");
+
             return MarketActionResult.Ok;
         }
 
@@ -163,13 +183,15 @@ namespace WolflineSquadTTT.Services
             if (claimed == 0)
                 return MarketActionResult.NotAvailable;
 
-            bool moved = await ExecuteSaleAsync(sellerSteam64, buyerSteam64, listing.KinvItemId, listing.Price);
-            if (!moved)
+            SaleOutcome outcome = await ExecuteSaleAsync(sellerSteam64, buyerSteam64, listing.KinvItemId, listing.Price);
+            if (outcome != SaleOutcome.Ok)
             {
                 // Roll the claim back so the listing stays buyable.
                 await _db.MarketListing.Where(l => l.Id == listingId)
                     .ExecuteUpdateAsync(s => s.SetProperty(l => l.Status, MarketListingStatus.Active));
-                return MarketActionResult.InsufficientFunds;
+                return outcome == SaleOutcome.InsufficientFunds
+                    ? MarketActionResult.InsufficientFunds
+                    : MarketActionResult.Error;
             }
 
             await _db.MarketListing.Where(l => l.Id == listingId).ExecuteUpdateAsync(s => s
@@ -179,6 +201,7 @@ namespace WolflineSquadTTT.Services
 
             await _hub.NotifyReloadInventoryAsync(buyerId);
             await _hub.NotifyReloadInventoryAsync(listing.SellerSteamId);
+            await LogTransactionAsync(TransactionType.Bought, listing.ItemName, buyerId, listing.Price);
             return MarketActionResult.Ok;
         }
 
@@ -230,6 +253,7 @@ namespace WolflineSquadTTT.Services
             await _db.SaveChangesAsync();
 
             await _hub.NotifyReloadInventoryAsync(sellerId);
+            await LogTransactionAsync(TransactionType.Removed, listing.ItemName, sellerId, null);
             return MarketActionResult.Ok;
         }
 
@@ -256,7 +280,7 @@ namespace WolflineSquadTTT.Services
                 if (hasWinner)
                 {
                     ulong winnerSteam64 = ulong.Parse(listing.HighestBidderSteamId!);
-                    bool sold = await ExecuteSaleAsync(sellerSteam64, winnerSteam64, listing.KinvItemId, listing.CurrentBid!.Value);
+                    bool sold = await ExecuteSaleAsync(sellerSteam64, winnerSteam64, listing.KinvItemId, listing.CurrentBid!.Value) == SaleOutcome.Ok;
                     if (sold)
                     {
                         listing.Status = MarketListingStatus.Sold;
@@ -266,6 +290,7 @@ namespace WolflineSquadTTT.Services
                         await _db.SaveChangesAsync();
                         await _hub.NotifyReloadInventoryAsync(listing.HighestBidderSteamId!);
                         await _hub.NotifyReloadInventoryAsync(listing.SellerSteamId);
+                        await LogTransactionAsync(TransactionType.Bought, listing.ItemName, listing.HighestBidderSteamId!, listing.CurrentBid);
                         continue;
                     }
                     // Winner couldn't pay → fall through and return the item to the seller.
@@ -275,11 +300,13 @@ namespace WolflineSquadTTT.Services
                 listing.Status = MarketListingStatus.Expired;
                 await _db.SaveChangesAsync();
                 await _hub.NotifyReloadInventoryAsync(listing.SellerSteamId);
+                await LogTransactionAsync(TransactionType.Removed, listing.ItemName, listing.SellerSteamId, null);
             }
         }
 
         // Charge the buyer, pay the seller, move the item into the buyer's inventory — all-or-nothing.
-        private async Task<bool> ExecuteSaleAsync(ulong sellerSteam64, ulong buyerSteam64, int kinvItemId, long amount)
+        // Distinguishes "genuinely too few points" from any other failure so the message isn't misleading.
+        private async Task<SaleOutcome> ExecuteSaleAsync(ulong sellerSteam64, ulong buyerSteam64, int kinvItemId, long amount)
         {
             await using MySqlConnection conn = new MySqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -288,10 +315,10 @@ namespace WolflineSquadTTT.Services
             {
                 int? sellerPid = await GetPlayerIdAsync(conn, tx, sellerSteam64);
                 int? buyerPid = await GetPlayerIdAsync(conn, tx, buyerSteam64);
-                if (sellerPid == null || buyerPid == null) { await tx.RollbackAsync(); return false; }
+                if (sellerPid == null || buyerPid == null) { await tx.RollbackAsync(); return SaleOutcome.Error; }
 
                 int? buyerInv = await GetInventoryIdAsync(conn, tx, buyerPid.Value);
-                if (buyerInv == null) { await tx.RollbackAsync(); return false; }
+                if (buyerInv == null) { await tx.RollbackAsync(); return SaleOutcome.Error; }
 
                 int charged;
                 await using (MySqlCommand cmd = new MySqlCommand(
@@ -301,7 +328,7 @@ namespace WolflineSquadTTT.Services
                     cmd.Parameters.AddWithValue("@pid", buyerPid.Value);
                     charged = await cmd.ExecuteNonQueryAsync();
                 }
-                if (charged != 1) { await tx.RollbackAsync(); return false; }   // insufficient funds / no wallet
+                if (charged != 1) { await tx.RollbackAsync(); return SaleOutcome.InsufficientFunds; }   // too few points / no wallet
 
                 await using (MySqlCommand cmd = new MySqlCommand(
                     "UPDATE ps2_wallet SET points = points + @amt WHERE ownerId = @pid;", conn, tx))
@@ -319,15 +346,21 @@ namespace WolflineSquadTTT.Services
                     await cmd.ExecuteNonQueryAsync();
                 }
 
+                // Drop the item into the buyer's first free grid slot.
+                await AssignFirstFreeSlotAsync(conn, tx, buyerPid.Value, kinvItemId);
+
                 await tx.CommitAsync();
-                return true;
+                return SaleOutcome.Ok;
             }
             catch
             {
                 await tx.RollbackAsync();
-                return false;
+                return SaleOutcome.Error;
             }
         }
+
+        // Result of a sale attempt — lets callers report the right reason instead of a blanket failure.
+        private enum SaleOutcome { Ok, InsufficientFunds, Error }
 
         // Put an escrowed item back into the owner's inventory (cancel / auction with no winner).
         private async Task<bool> ReturnItemAsync(ulong steam64, int kinvItemId)
@@ -340,12 +373,27 @@ namespace WolflineSquadTTT.Services
             int? inv = await GetInventoryIdAsync(conn, null, pid.Value);
             if (inv == null) return false;
 
-            await using MySqlCommand cmd = new MySqlCommand(
-                "UPDATE kinv_items SET inventory_id = @inv WHERE id = @kinv;", conn);
-            cmd.Parameters.AddWithValue("@inv", inv.Value);
-            cmd.Parameters.AddWithValue("@kinv", kinvItemId);
-            await cmd.ExecuteNonQueryAsync();
-            return true;
+            await using MySqlTransaction tx = await conn.BeginTransactionAsync();
+            try
+            {
+                await using (MySqlCommand cmd = new MySqlCommand(
+                    "UPDATE kinv_items SET inventory_id = @inv WHERE id = @kinv;", conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("@inv", inv.Value);
+                    cmd.Parameters.AddWithValue("@kinv", kinvItemId);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // Put it back into the first free grid slot.
+                await AssignFirstFreeSlotAsync(conn, tx, pid.Value, kinvItemId);
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
         }
 
         private static async Task<int?> GetPlayerIdAsync(MySqlConnection conn, MySqlTransaction? tx, ulong steam64)
@@ -362,6 +410,60 @@ namespace WolflineSquadTTT.Services
             cmd.Parameters.AddWithValue("@p", pid);
             object? result = await cmd.ExecuteScalarAsync();
             return result == null || result is DBNull ? null : Convert.ToInt32(result);
+        }
+
+        // Writes the item into the player's lowest free grid slot in maffinapi_item_slots (slots are 1-based).
+        private static async Task AssignFirstFreeSlotAsync(MySqlConnection conn, MySqlTransaction? tx, int pid, int itemId)
+        {
+            HashSet<int> used = new HashSet<int>();
+            await using (MySqlCommand cmd = new MySqlCommand(
+                @"SELECT s.slot FROM maffinapi_item_slots s
+                  JOIN kinv_items k ON k.id = s.itemId
+                  WHERE k.inventory_id IN (SELECT id FROM inventories WHERE ownerId = @pid);", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@pid", pid);
+                await using MySqlDataReader reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync()) used.Add(reader.GetInt32(0));
+            }
+
+            int slot = 1;
+            while (used.Contains(slot)) slot++;
+
+            await using (MySqlCommand cmd = new MySqlCommand(
+                "INSERT INTO maffinapi_item_slots (itemId, slot) VALUES (@id, @slot) ON DUPLICATE KEY UPDATE slot = @slot;", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@id", itemId);
+                cmd.Parameters.AddWithValue("@slot", slot);
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        // Removes an item's grid slot (e.g. when it's escrowed out of the inventory).
+        private static async Task FreeSlotAsync(MySqlConnection conn, MySqlTransaction? tx, int itemId)
+        {
+            await using MySqlCommand cmd = new MySqlCommand("DELETE FROM maffinapi_item_slots WHERE itemId = @id;", conn, tx);
+            cmd.Parameters.AddWithValue("@id", itemId);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // Append-only audit log of market transactions. Best-effort — never breaks a completed trade.
+        private async Task LogTransactionAsync(TransactionType type, string itemName, string steamId, long? price)
+        {
+            try
+            {
+                _db.PointShopTransaction.Add(new PointShopTransaction
+                {
+                    Type = type,
+                    ItemName = itemName,
+                    SteamId = steamId,
+                    Price = price
+                });
+                await _db.SaveChangesAsync();
+            }
+            catch
+            {
+                // logging must not break a completed trade
+            }
         }
 
         // The item must be in the seller's own inventory (not equipped, not already escrowed/listed).
