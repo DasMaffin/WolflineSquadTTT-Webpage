@@ -26,7 +26,12 @@ body {
 body::before {
     content: "";
     position: fixed;
-    inset: 0;
+    /* Longhand offsets, not the `inset` shorthand: GMod's CEF (older Chromium) doesn't support `inset`,
+       which collapsed this fixed background layer to 0x0 so the image never rendered in-game. */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: -1;
     background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("/images/background.png");
     background-size: cover;
