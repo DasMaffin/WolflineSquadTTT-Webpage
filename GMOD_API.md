@@ -9,6 +9,7 @@ There are three: one to report Golden Deagle shots, and two for the poll reward 
 | `GET`  | `/rewards/pending` | API key | List **all** unclaimed rewards |
 | `GET`  | `/rewards/pending/{rewardType}` | API key | List unclaimed rewards of one type (e.g. `GarrysMod`) |
 | `POST` | `/rewards/claim` | API key | Mark rewards as handed out |
+| `POST` | `/api/Stats` | API key | Upload the player-activity (round) dataset |
 
 ## Base URL
 
@@ -205,6 +206,58 @@ end
 ```
 
 ---
+
+## 4. Upload player-activity stats
+
+**`POST /api/Stats`** — auth required (key goes in the **`X-Api-Key` header** — the body is the dataset,
+so there's no room for the key in the body here).
+
+**Full replace:** the body is the complete current dataset that the `/Stats` page reads — a map of
+SteamID64 → list of rounds. Uploading **overwrites** the stored dataset, so send your whole current
+dataset (not just new rounds).
+
+### Request body
+
+```json
+{
+  "76561198000000000": [
+    { "startTime": 1750000000, "endTime": 1750000300, "finishedReports": 2, "playing": true, "activePlayers": 8 }
+  ],
+  "76561198111111111": [ ]
+}
+```
+
+| Round field | Type | Description |
+|-------------|------|-------------|
+| `startTime` | integer | Round start, Unix seconds |
+| `endTime` | integer | Round end, Unix seconds |
+| `finishedReports` | integer | Completed damage-log reports that round |
+| `playing` | bool | Whether the player was actively playing (vs AFK/spectating) |
+| `activePlayers` | integer | Active players that round |
+
+### Responses
+
+- `200 OK` → `{ "status": "success", "players": 42 }` (number of SteamIDs received)
+- `400 Bad Request` → invalid/empty body
+- See [auth errors](#auth-error-responses) for `401` / `403` / `500`
+
+Max body size is 100 MB.
+
+### Lua example
+
+```lua
+-- `roundJson` is your activity dataset already serialized to JSON:
+-- a table of [steamId64] = { { startTime=..., endTime=..., finishedReports=..., playing=..., activePlayers=... }, ... }
+HTTP({
+    method  = "POST",
+    url     = BASE_URL .. "/api/Stats",
+    type    = "application/json",
+    headers = { ["X-Api-Key"] = API_KEY },
+    body    = roundJson,
+    success = function(code, body) if code ~= 200 then print("[WLSQ] stats upload: HTTP " .. code) end end,
+    failed  = function(reason) print("[WLSQ] stats upload failed: " .. reason) end
+})
+```
 
 ## Typical reward flow
 

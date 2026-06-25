@@ -32,6 +32,9 @@ All in the current build; the running instance must be restarted/redeployed:
 - Login gate: not-logged-in users hitting gated pages now go to `/auth/login` ("Please log in" + Steam
   button) and are returned to the original page after login (`returnUrl` threaded through Steam OpenID).
   No DB migration.
+- Stats upload API: `POST /api/Stats` (key in `X-Api-Key` header) full-replaces `wwwroot/data/roundData.json`
+  via `DataWriterService.WriteRoundData`. File-backed, **no DB migration**. (Ensure the host's `wwwroot/data`
+  is writable + persisted.)
 
 ## Runtime / host
 - `DataProtection-Keys/` is created under the app content root at runtime (gitignored). The host path
@@ -41,3 +44,4 @@ All in the current build; the running instance must be restarted/redeployed:
 
 ## Repo-only (no deploy)
 - `GMOD_API.md`, `GMOD_AUTH.md`, `DEPLOY.md` — docs.
+- `gmod/` — reference GMod Lua (server + client) that consumes the APIs; runs on the game server, not the website.
