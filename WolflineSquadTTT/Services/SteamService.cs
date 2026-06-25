@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using Microsoft.Extensions.Caching.Memory;
+using System.Text.Json;
 using System.Web;
 
 namespace WolflineSquadTTT.Services
@@ -16,14 +17,18 @@ namespace WolflineSquadTTT.Services
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
         private readonly ISteamNameCache _nameCache;
+        private readonly IMemoryCache _cache;
 
-        public SteamService(HttpClient httpClient, IConfiguration config, ISteamNameCache nameCache)
+        public SteamService(HttpClient httpClient, IConfiguration config, ISteamNameCache nameCache, IMemoryCache cache)
         {
             _httpClient = httpClient;
             _apiKey = config["SteamApi:ApiKey"]!;
             if (_apiKey == null) throw new ArgumentNullException();
             _nameCache = nameCache;
+            _cache = cache;
         }
+
+        private static string WorkshopCacheKey(ulong publishedFileId) => $"workshop:img:{publishedFileId}";
 
         private string BuildWorkshopDetailsUrl(ulong publishedFileId)
         {
@@ -41,6 +46,10 @@ namespace WolflineSquadTTT.Services
 
         public async Task<KeyValuePair<ulong, string>> GetWorkshopPreviewImageAsync(ulong publishedFileId)
         {
+            // Workshop preview URLs are effectively static — cache them so a page render doesn't hit Steam every time.
+            if (_cache.TryGetValue(WorkshopCacheKey(publishedFileId), out string? cached) && cached != null)
+                return new KeyValuePair<ulong, string>(publishedFileId, cached);
+
             string url = BuildWorkshopDetailsUrl(publishedFileId);
 
             HttpResponseMessage response = await _httpClient.GetAsync(url);
@@ -56,23 +65,16 @@ namespace WolflineSquadTTT.Services
                 .GetProperty("preview_url")
                 .GetString() ?? string.Empty;
 
-            if(previewUrl == null) previewUrl = string.Empty;
+            _cache.Set(WorkshopCacheKey(publishedFileId), previewUrl, TimeSpan.FromHours(12));
 
-            KeyValuePair<ulong, string> ret = new KeyValuePair<ulong, string>(publishedFileId, previewUrl);
-
-            return ret;
+            return new KeyValuePair<ulong, string>(publishedFileId, previewUrl);
         }
 
         public async Task<Dictionary<ulong, string>> GetWorkshopPreviewImagesAsync(List<ulong> publishedFileIds)
         {
-            IDictionary<ulong, string> ret = new Dictionary<ulong, string>();
-
-            foreach(ulong fileId in publishedFileIds)
-            {
-                ret.Add(await GetWorkshopPreviewImageAsync(fileId));
-            }
-
-            return (Dictionary<ulong, string>)ret;
+            // Fetch in parallel (cache hits return instantly; a cold render does one round-trip, not N sequential).
+            KeyValuePair<ulong, string>[] results = await Task.WhenAll(publishedFileIds.Select(GetWorkshopPreviewImageAsync));
+            return results.ToDictionary(kv => kv.Key, kv => kv.Value);
         }
 
         public async Task<string> GetPrettyNameAsync(ulong steamId)

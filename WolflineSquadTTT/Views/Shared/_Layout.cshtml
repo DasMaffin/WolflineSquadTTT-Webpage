@@ -44,6 +44,12 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="" asp-controller="Polls" asp-action="Index">Polls</a>
                         </li>
+                        @if (HttpContextAccessor.HttpContext?.Session.GetString("SteamID") != null)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="PointShop" asp-action="Inventory">Inventory</a>
+                            </li>
+                        }
                         @if (PermissionHelper.HasPermission(HttpContextAccessor.HttpContext!.Session, Permission.ManageRights))
                         {
                             <li class="nav-item">

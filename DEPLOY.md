@@ -12,10 +12,46 @@ are made; check items off once they're live. Most recent first.
     `Poll` / `PollOption` / `UserPollOptionVote` first — the new `Discriminator` backfill (`""`) leaves
     pre-existing rows unmappable.
 - **No further migrations needed** for anything after `AddPollsAndRewards` — the reward payload trim,
-  `/{rewardType}` filter, header auth, ViewPolls default, and all UI work are code-only.
+  `/{rewardType}` filter, header auth, ViewPolls default, and all UI work are code-only. The Pointshop 2
+  inventory page is **read-only against the game server's `GMod` database** and creates no migration of
+  its own (we never write/migrate that foreign schema).
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
+- Perf (2026-06-25): `_Layout` workshop thumbnails no longer hit the Steam API on every page render —
+  `SteamService` caches each preview URL in `IMemoryCache` (12h) and fetches the batch in parallel. Speeds
+  up **every** page (was the main per-page latency). No DB migration, no config.
+- Perf — scroll/paint (2026-06-25): `site.css` no longer uses `background-attachment: fixed` (moved the
+  darkened background onto one fixed composited `body::before` layer) and removed `backdrop-filter: blur`
+  from the navbar/footer. Fixes janky scrolling/interaction on long pages (the inventory grid). Bar opacities
+  nudged up (navbar .85, footer .9) to compensate for the dropped blur. CSS-only.
+- Pointshop 2 inventory: `GET /pointshop2/inventory` (`PointShopController`, `[RequiresLogin]`) shows the
+  signed-in user their own in-game inventory + wallet, read live from the `GMod` DB via `IPointShopService`
+  (raw read-only SQL, MySqlConnector). New `RequiresLoginAttribute` (any logged-in user, no permission) and
+  an "Inventory" nav link (logged-in only). **Requires a new `GModDb` connection string** (see Runtime/host).
+  **No DB migration.**
+  - View others (2026-06-25): `GET /pointshop2/inventory/{steamId}` gated by a new permission
+    **`ViewInventories` (enum = 9)** in a new **"Pointshop 2"** permission group (auto-renders a tab in
+    `/Admin/Permissions`). Same view, headed with the target player's name. Permission is just an enum value —
+    **no DB migration**.
+  - Privacy + GDPR updated: we display Pointshop data read live (not stored); viewable by the owner **and by
+    authorized staff** holding `ViewInventories`.
+  - Redesign (2026-06-25): in-game-style **slot grid** (unequipped items filling `inventories.numSlots`, in
+    purchase order — no slot index is stored) + separate **equipment panel** (`ps2_equipmentslot`), three
+    wallet currencies (Points / Premium / **EasterEggs**), Airdrop **currency-bundle** tiles (null-persistence
+    `kinv_items`, amount from `data` JSON), and one **colour per item type**. Code-only, **no migration**.
+  - Unequip + live reload (2026-06-25): double-clicking your own equipped item → `POST /pointshop2/unequip`
+    (`[RequiresLogin]` + antiforgery; ownership enforced by the session SteamID) **writes the game DB**
+    (returns the item to `kinv_items.inventory_id`, clears `ps2_equipmentslot.itemId`) then pushes a
+    WebSocket hook so the server reloads. **Guard:** if no GMod socket is connected, it returns HTTP 503 with
+    a "Server connection could not be established…" message (shown in a dialog) and **performs no DB write**.
+    New **WebSocket server** `GET /ws/gmod` (`app.UseWebSockets()` + `IGmodSocketHub` singleton, API-key auth
+    via `X-Api-Key` header / `?apiKey=`); pushes `{"hook":"MaffinAPI_PointshopReloadInventory","args":["<steam64>"]}`
+    to all connected GMod servers. Contract in `GMOD_WEBSOCKET.md`. **No website DB migration.**
+    - ⚠️ **The `GModDb` user now needs WRITE access**: `UPDATE` on `GMod.ps2_equipmentslot` and
+      `GMod.kinv_items` (it was read-only `SELECT`). Until granted, unequip returns 400/throws.
+    - ⚠️ **Test against `GModTest` first** (same-schema copy) before pointing at live `GMod` — this mutates
+      real inventories and couldn't be tested from here (read-only access).
 - Persistent Steam login cookie (`WolflineLogin`) + session-rehydration middleware + Data Protection keys.
 - Polls system (Basic / MultiSelect / Ranking, voting UI, results, management) + **ViewPolls default-on**.
 - Reward system + GMod API: `GET /rewards/pending`, `GET /rewards/pending/{rewardType}`,
@@ -48,6 +84,11 @@ All in the current build; the running instance must be restarted/redeployed:
   must be writable and **persisted across redeploys**, or login cookies invalidate on each deploy.
 - Prod `appsettings.Production.json` (gitignored) must have: DB host `5.182.204.32:27000`, Steam API
   key, and GUID `ApiPrivateKeys`. (Set as of 2026-06-23.)
+- ⬜ **New `GModDb` connection string** (gitignored env settings, dev + prod) for the Pointshop inventory
+  page — point it at the game DB (`Server=5.182.204.32;Port=27000;Database=GMod;User=...;Password=...`).
+  Base `appsettings.json` carries a placeholder only. Privileges the user needs:
+  `SELECT ON GMod.*` (read the inventory) **plus** `UPDATE ON GMod.ps2_equipmentslot` and
+  `UPDATE ON GMod.kinv_items` (the unequip write). Still no DDL/migration on that schema.
 
 ## Repo-only (no deploy)
 - `GMOD_API.md`, `GMOD_AUTH.md`, `DEPLOY.md` — docs.

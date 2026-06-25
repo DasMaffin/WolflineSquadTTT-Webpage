@@ -1,0 +1,178 @@
+@model PointShopInventoryViewModel
+@{
+    ViewData["Title"] = "Pointshop Inventory";
+
+    string heading = Model.IsSelf
+        ? "My Inventory"
+        : (Model.Found ? $"{Model.PlayerName}'s Inventory" : "Player Inventory");
+}
+
+<div class="poll-panel my-4 ps-inventory">
+    <div class="ps-topbar">
+        <div class="ps-title">Pointshop <span class="ps-title-2">2</span> <span class="ps-sub">@heading</span></div>
+        @if (Model.Found)
+        {
+            <div class="ps-currencies">
+                <span class="ps-cur points">@Model.Points.ToString("N0") Points</span>
+                <span class="ps-cur premium">@Model.PremiumPoints.ToString("N0") Premium</span>
+                <span class="ps-cur eggs">@Model.EasterEggs.ToString("N0") Easter Eggs</span>
+            </div>
+        }
+    </div>
+
+    @if (!Model.Found)
+    {
+        <p class="text-muted">
+            @if (Model.IsSelf)
+            {
+                @:We couldn't find any Pointshop data for your account yet. Join the server at least once and your inventory will appear here.
+            }
+            else
+            {
+                @:We couldn't find any Pointshop data for this player. They may not have joined the server yet.
+            }
+        </p>
+    }
+    else
+    {
+        int totalCells = Math.Max(Model.NumSlots, Model.Items.Count);
+
+        @if (Model.IsSelf)
+        {
+            @Html.AntiForgeryToken()
+        }
+
+        <div class="ps-layout">
+            <div class="ps-grid-wrap">
+                <div class="ps-grid-head">
+                    <span>Items</span>
+                    <span class="text-muted">@Model.FilledSlots / @Model.NumSlots slots</span>
+                </div>
+                <div class="ps-grid">
+                    @for (int i = 0; i < totalCells; i++)
+                    {
+                        if (i < Model.Items.Count)
+                        {
+                            PointShopItem item = Model.Items[i];
+                            <div class="ps-slot filled ps-type-@item.TypeKey"
+                                 title="@item.Name@(item.Category != null ? " — " + item.Category : "")">
+                                <span class="ps-name">@item.Name</span>
+                                @if (item.Quantity > 1)
+                                {
+                                    <span class="ps-qty">@item.Quantity</span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="ps-slot empty"></div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="ps-equip">
+                <div class="ps-grid-head"><span>Equipped</span></div>
+                @if (!Model.Equipment.Any())
+                {
+                    <p class="text-muted small">Nothing equipped.</p>
+                }
+                else
+                {
+                    <div class="ps-equip-grid">
+                        @foreach (PointShopEquipSlot slot in Model.Equipment)
+                        {
+                            <div class="ps-equip-slot">
+                                @if (slot.IsEmpty)
+                                {
+                                    <div class="ps-slot empty"></div>
+                                }
+                                else
+                                {
+                                    <div class="ps-slot filled ps-type-@slot.Item!.TypeKey@(Model.IsSelf ? " ps-unequip" : "")"
+                                         data-slot-id="@slot.EquipSlotId"
+                                         title="@slot.Item.Name@(slot.Item.Category != null ? " — " + slot.Item.Category : "")@(Model.IsSelf ? " (double-click to unequip)" : "")">
+                                        <span class="ps-name">@slot.Item.Name</span>
+                                    </div>
+                                }
+                                <span class="ps-equip-label">@slot.SlotName</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<div id="ps-context-menu" class="ps-context-menu" role="menu">
+    <button type="button" class="ps-context-item" data-action="default">Show default options</button>
+</div>
+
+@section Scripts {
+    @if (Model.IsSelf && Model.Found)
+    {
+        <script>
+            document.querySelectorAll('.ps-equip-slot .ps-slot.ps-unequip[data-slot-id]').forEach(function (el) {
+                el.addEventListener('dblclick', async function () {
+                    var slotId = el.getAttribute('data-slot-id');
+                    var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                    if (!tokenInput) return;
+
+                    el.style.opacity = '0.5';
+                    try {
+                        var resp = await fetch('/pointshop2/unequip', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({ slotId: slotId, __RequestVerificationToken: tokenInput.value })
+                        });
+                        if (resp.ok) {
+                            location.reload();
+                        } else {
+                            el.style.opacity = '1';
+                            var msg = await resp.text();
+                            alert(msg || 'Could not unequip that item.');
+                        }
+                    } catch (e) {
+                        el.style.opacity = '1';
+                        alert('Could not unequip that item. Please try again.');
+                    }
+                });
+            });
+        </script>
+    }
+
+    <script>
+        (function () {
+            var menu = document.getElementById('ps-context-menu');
+            var scope = document.querySelector('.ps-inventory');
+            if (!menu || !scope) return;
+
+            var bypassNext = false;
+
+            scope.addEventListener('contextmenu', function (e) {
+                // One real right-click after "Show default options" is allowed through to the browser's menu —
+                // browsers don't permit opening the native context menu programmatically.
+                if (bypassNext) { bypassNext = false; return; }
+                e.preventDefault();
+                menu.classList.add('show');
+                var x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 6);
+                var y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 6);
+                menu.style.left = Math.max(0, x) + 'px';
+                menu.style.top = Math.max(0, y) + 'px';
+            });
+
+            function hide() { menu.classList.remove('show'); }
+            document.addEventListener('click', hide);
+            document.addEventListener('scroll', hide, true);
+            window.addEventListener('resize', hide);
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+
+            menu.querySelector('[data-action="default"]').addEventListener('click', function (e) {
+                e.stopPropagation();
+                hide();
+                bypassNext = true;
+            });
+        })();
+    </script>
+}

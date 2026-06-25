@@ -36,6 +36,10 @@ namespace WolflineSquadTTT.Models.Enums
         /// Allows user to view individual poll responses (which user picked what).
         /// </summary>
         [PermissionGroup("Poll")] ViewIndividualResponses = 8,
+        /// <summary>
+        /// Allows user to view other players' Pointshop 2 inventories.
+        /// </summary>
+        [PermissionGroup("Pointshop 2")] ViewInventories = 9,
 
         /// <summary>
         /// Allows user to do anything. Use with caution!

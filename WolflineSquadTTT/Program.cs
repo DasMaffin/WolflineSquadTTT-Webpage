@@ -47,11 +47,13 @@ namespace WolflineSquadTTT
             builder.Services.AddScoped<IUserRightService, UserRightService>();
             builder.Services.AddScoped<IPollService, PollService>();
             builder.Services.AddScoped<IRewardService, RewardService>();
+            builder.Services.AddScoped<IPointShopService, PointShopService>();
             builder.Services.AddSingleton<ISteamNameCache, SteamNameCache>();
             builder.Services.AddHttpClient<ISteamService, SteamService>();
             builder.Services.AddSingleton<DataWriterService>();
             builder.Services.AddSingleton<ILoginCookieService, LoginCookieService>();
             builder.Services.AddSingleton<IGmodAuthTokenService, GmodAuthTokenService>();
+            builder.Services.AddSingleton<IGmodSocketHub, GmodSocketHub>();
 
             // Persist Data Protection keys so login cookies survive app restarts/redeploys.
             builder.Services.AddDataProtection()
@@ -64,6 +66,7 @@ namespace WolflineSquadTTT
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+            app.UseWebSockets();
             app.UseSession();
             app.UseMiddleware<LoginCookieMiddleware>();
 

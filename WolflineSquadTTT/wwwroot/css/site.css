@@ -19,32 +19,30 @@ html {
 
 body {
     margin-bottom: 60px;
-    background-image: url("/images/background.png");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
 }
 
+/* Background sits on one fixed, GPU-composited layer instead of background-attachment:fixed,
+   which repaints the whole viewport every scroll frame (the cause of the scroll jank). */
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
     z-index: -1;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("/images/background.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 header .navbar {
-    background-color: rgba(0, 0, 0, 0.8) !important;
-    backdrop-filter: blur(3px);
+    background-color: rgba(0, 0, 0, 0.85) !important;
 }
 header .navbar a {
     color: #fff !important;
 }
 
 footer.footer {
-    background-color: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(3px);
+    background-color: rgba(0, 0, 0, 0.9);
 }
 footer.footer a {
     color: #ccc;
@@ -67,6 +65,202 @@ footer.footer a:hover {
     border-radius: 16px;
     padding: 28px 32px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Pointshop 2 inventory ---- */
+.ps-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ps-title {
+    font-size: 1.7rem;
+    font-weight: 600;
+}
+
+.ps-title .ps-title-2 {
+    color: #d63384;
+}
+
+.ps-title .ps-sub {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #9aa0aa;
+    margin-left: 10px;
+}
+
+.ps-currencies {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ps-cur {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #fff;
+}
+
+.ps-cur.points { background-color: #2f7d4f; }
+.ps-cur.premium { background-color: #b08900; }
+.ps-cur.eggs { background-color: #7a4fb0; }
+
+.ps-layout {
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.ps-grid-wrap {
+    flex: 1 1 480px;
+    min-width: 0;
+}
+
+.ps-equip {
+    flex: 0 0 280px;
+}
+
+.ps-grid-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.ps-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+}
+
+.ps-equip-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.ps-equip-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+}
+
+.ps-equip-label {
+    font-size: 0.7rem;
+    color: #9aa0aa;
+    text-align: center;
+}
+
+.ps-slot {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px;
+    overflow: hidden;
+}
+
+.ps-slot.empty {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.ps-slot.filled {
+    color: #fff;
+    border-color: rgba(0, 0, 0, 0.25);
+}
+
+.ps-slot.ps-unequip {
+    cursor: pointer;
+}
+
+.ps-context-menu {
+    position: fixed;
+    z-index: 1080;
+    display: none;
+    min-width: 180px;
+    padding: 4px;
+    background-color: #1c1f26;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.ps-context-menu.show {
+    display: block;
+}
+
+.ps-context-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #e8e8ea;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.ps-context-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.ps-slot .ps-name {
+    font-size: 0.7rem;
+    line-height: 1.1;
+    max-height: 100%;
+    overflow: hidden;
+    word-break: break-word;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.ps-qty {
+    position: absolute;
+    bottom: 3px;
+    right: 4px;
+    background-color: rgba(0, 0, 0, 0.65);
+    border-radius: 6px;
+    padding: 0 5px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+/* unique colour per item type */
+.ps-type-weapon { background-color: #9b2d2d; }
+.ps-type-singleuse { background-color: #5e2424; }
+.ps-type-model { background-color: #5b3a82; }
+.ps-type-container { background-color: #3f3a82; }
+.ps-type-trail { background-color: #1f6e6e; }
+.ps-type-hat { background-color: #9a5a1f; }
+.ps-type-key { background-color: #8a7320; }
+.ps-type-crate { background-color: #6e4a2e; }
+.ps-type-role { background-color: #2d6a4f; }
+.ps-type-currency { background-color: #2f7d4f; }
+.ps-type-other { background-color: #3a3f4a; }
+
+@media (max-width: 1100px) {
+    .ps-grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .ps-grid { grid-template-columns: repeat(4, 1fr); }
+    .ps-equip { flex-basis: 100%; }
 }
 
 a[target="_blank"]:not(:has(img))::after {
