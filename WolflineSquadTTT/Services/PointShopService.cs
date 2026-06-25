@@ -71,7 +71,8 @@ namespace WolflineSquadTTT.Services
                         Name = reader.GetString(0),
                         BaseClass = reader.GetString(1),
                         Category = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        Quantity = (int)reader.GetInt64(3)
+                        Quantity = (int)reader.GetInt64(3),
+                        KinvItemId = (int)reader.GetInt64(4)
                     });
                 }
             }
@@ -217,7 +218,8 @@ SELECT
     ip.name,
     ip.baseClass,
     MAX(cat.label),
-    CAST(COUNT(*) AS SIGNED)
+    CAST(COUNT(*) AS SIGNED),
+    CAST(MIN(k.id) AS SIGNED)
 FROM kinv_items k
 JOIN ps2_itempersistence ip ON ip.id = k.itempersistence_id
 LEFT JOIN ps2_itemmapping m ON m.itemClass = CAST(ip.id AS CHAR)

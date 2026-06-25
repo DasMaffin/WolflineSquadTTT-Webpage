@@ -11,10 +11,14 @@ are made; check items off once they're live. Most recent first.
     against ProdDb, or `MigrateAndUpdateDatabase.ps1 --prod`). ⚠️ Clear any old test rows in
     `Poll` / `PollOption` / `UserPollOptionVote` first — the new `Discriminator` backfill (`""`) leaves
     pre-existing rows unmappable.
-- **No further migrations needed** for anything after `AddPollsAndRewards` — the reward payload trim,
-  `/{rewardType}` filter, header auth, ViewPolls default, and all UI work are code-only. The Pointshop 2
-  inventory page is **read-only against the game server's `GMod` database** and creates no migration of
-  its own (we never write/migrate that foreign schema).
+- **`AddMarket`** (2026-06-25) — adds the `MarketListing` table (website DB) for the Pointshop 2 market
+  (seller, escrowed kinv item id, denormalised item display, type/status, price, auction bid/bidder/end,
+  sale outcome; indexes on `Status` + `SellerSteamId`). New-table-only.
+  - Dev DB (`mwlp_webpage_dev`): ⬜ apply (`dotnet ef database update`).
+  - Prod DB (`mwlp_webpage_prod`): ⬜ apply at deploy.
+- The Pointshop 2 inventory page itself is read-only against the `GMod` DB and adds no migration; the
+  inventory **unequip** and **market** features only need *runtime* write privileges on the game DB (below),
+  not a schema migration there.
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
@@ -52,6 +56,14 @@ All in the current build; the running instance must be restarted/redeployed:
       `GMod.kinv_items` (it was read-only `SELECT`). Until granted, unequip returns 400/throws.
     - ⚠️ **Test against `GModTest` first** (same-schema copy) before pointing at live `GMod` — this mutates
       real inventories and couldn't be tested from here (read-only access).
+- Pointshop 2 market (2026-06-25): `/pointshop2/market` (`MarketController`, `[RequiresLogin]`) — list items
+  for **fixed-price sale or auction**, buy, bid, cancel. Listings live in the website DB (`MarketListing` +
+  `AddMarket` migration); the listed item is **escrowed in the game DB** (`kinv_items.inventory_id` cleared)
+  and moves on sale; **points only**. Selling is launched from the inventory right-click → "Sell on market"
+  modal. `AuctionCloserService` (hosted `BackgroundService`, 30 s) settles expired auctions. Every trade
+  write is **socket-gated** (503 + dialog if no GMod server is connected) and pushes inventory-rebuild hooks
+  to both players. "Market" nav link (logged-in). Needs game-DB write privileges (see Runtime/host). Privacy
+  + GDPR updated.
 - Persistent Steam login cookie (`WolflineLogin`) + session-rehydration middleware + Data Protection keys.
 - Polls system (Basic / MultiSelect / Ranking, voting UI, results, management) + **ViewPolls default-on**.
 - Reward system + GMod API: `GET /rewards/pending`, `GET /rewards/pending/{rewardType}`,
@@ -87,8 +99,9 @@ All in the current build; the running instance must be restarted/redeployed:
 - ⬜ **New `GModDb` connection string** (gitignored env settings, dev + prod) for the Pointshop inventory
   page — point it at the game DB (`Server=5.182.204.32;Port=27000;Database=GMod;User=...;Password=...`).
   Base `appsettings.json` carries a placeholder only. Privileges the user needs:
-  `SELECT ON GMod.*` (read the inventory) **plus** `UPDATE ON GMod.ps2_equipmentslot` and
-  `UPDATE ON GMod.kinv_items` (the unequip write). Still no DDL/migration on that schema.
+  `SELECT ON GMod.*` (read the inventory) **plus** `UPDATE` on `GMod.ps2_equipmentslot` (unequip),
+  `GMod.kinv_items` (unequip + market escrow/transfer) and `GMod.ps2_wallet` (market points transfer).
+  Still no DDL/migration on that schema.
 
 ## Repo-only (no deploy)
 - `GMOD_API.md`, `GMOD_AUTH.md`, `DEPLOY.md` — docs.

@@ -23,8 +23,13 @@ namespace WolflineSquadTTT.Models
         public string? Category { get; set; }
         public int Quantity { get; set; } = 1;
 
+        // The GMod kinv_items.id of one instance in this (possibly stacked) tile — used to sell on the market.
+        public int KinvItemId { get; set; }
+
         // A short, unique-per-type key used to colour the tile (see site.css .ps-type-*).
-        public string TypeKey => BaseClass switch
+        public string TypeKey => TypeKeyFor(BaseClass);
+
+        public static string TypeKeyFor(string baseClass) => baseClass switch
         {
             "base_weapon" => "weapon",
             "base_single_use_weapon" => "singleuse",

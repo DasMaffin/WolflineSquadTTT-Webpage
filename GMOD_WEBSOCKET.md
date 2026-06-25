@@ -26,22 +26,21 @@ the website runs.
 
 ## Authentication
 
-On the WebSocket **handshake (the HTTP upgrade request)**, GMod sends:
+On the WebSocket **handshake (the HTTP upgrade request)**, GMod sends the key in a header - the **same**
+`X-Api-Key` header as the rest of the API (see `GMOD_API.md`):
 
 ```
 X-Api-Key: <the private API GUID>
 ```
 
-This is the **same key** as the rest of the API (see `GMOD_API.md`). Your `/ws/gmod` endpoint **must**:
+Your `/ws/gmod` endpoint **must**:
 
 1. Read the `X-Api-Key` header from the upgrade request.
 2. Validate it (must be a known, allowed GUID).
-3. **Reject / close** the connection if missing or invalid (e.g. respond `401` to the upgrade, or accept
-   then immediately close).
+3. **Reject / close** if missing or invalid (e.g. respond `401` to the upgrade, or accept then immediately close).
 
-Only an authenticated GMod server should get an open socket. If you run multiple servers, you can also use
-the key (or a per-server id you assign) to know *which* server each socket belongs to, so you can target
-pushes.
+Only an authenticated GMod server should get an open socket. If you run multiple servers, use the key (or a
+per-server id you assign) to know *which* server each socket belongs to, so you can target pushes.
 
 ## Message format (site -> GMod)
 
@@ -107,7 +106,7 @@ After you commit your SQL change for a player (equip/unequip/grant/remove a Poin
 ## Server-side implementation checklist
 
 1. Expose a WebSocket endpoint at `/ws/gmod`.
-2. On the upgrade request, read + validate `X-Api-Key`; reject if bad.
+2. On the upgrade request, read + validate the `X-Api-Key` header; reject if bad.
 3. Keep the connection open; track it (optionally by key/server id).
 4. When site state changes, **commit your SQL first**, then send the JSON frame to the relevant server's
    socket.
@@ -138,8 +137,8 @@ function onPointshopChanged(steamId64, serverId):
 
 ## Notes
 
-- The GMod side currently only **receives** (beyond the auth header it sends nothing back). You don't need
-  to handle inbound application messages from GMod - just authenticate, hold the socket open, and push.
+- The GMod side currently only **receives** (beyond the `X-Api-Key` handshake header it sends nothing
+  back). You don't need to handle inbound messages from GMod - just authenticate, hold the socket open, and push.
 - The `/ws/gmod` path is the default; it's configurable on the GMod side if it ever collides with another route.
 - Keep the API key secret - it's the only thing standing between the open internet and your server's game
   state. Treat the WS handshake auth as seriously as the REST endpoints.

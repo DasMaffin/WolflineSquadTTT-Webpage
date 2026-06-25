@@ -1,0 +1,118 @@
+@model MarketIndexViewModel
+@{
+    ViewData["Title"] = "Market";
+}
+
+<div class="poll-panel my-4 ps-inventory">
+    <div class="ps-topbar">
+        <div class="ps-title">Market</div>
+        <a class="btn btn-outline-light btn-sm" asp-controller="PointShop" asp-action="Inventory">My inventory</a>
+    </div>
+
+    @Html.AntiForgeryToken()
+
+    @if (!Model.SocketConnected)
+    {
+        <div class="alert alert-warning">
+            Trading is currently unavailable — the Garry's Mod server isn't connected. Buying, bidding, and
+            listing are disabled until it's back. Inform the administrator if this persists.
+        </div>
+    }
+
+    <p class="text-muted">To sell something, right-click an item in <a asp-controller="PointShop" asp-action="Inventory">your inventory</a> and choose “Sell on market”.</p>
+
+    @if (!Model.Listings.Any())
+    {
+        <p class="text-muted">There's nothing on the market right now.</p>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+            @foreach (MarketListingViewModel listing in Model.Listings)
+            {
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <span class="ps-market-chip ps-type-@listing.TypeKey">@listing.ItemName</span>
+                                <span class="badge bg-secondary flex-shrink-0">@(listing.IsAuction ? "Auction" : "Sale")</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(listing.Category))
+                            {
+                                <div class="text-muted small mb-2">@listing.Category</div>
+                            }
+
+                            @if (listing.IsAuction)
+                            {
+                                <p class="mb-1">
+                                    @if (listing.CurrentBid.HasValue)
+                                    {
+                                        <span>Current bid: <strong>@listing.CurrentBid.Value.ToString("N0")</strong> points</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Starting at: <strong>@listing.Price.ToString("N0")</strong> points</span>
+                                    }
+                                </p>
+                                <p class="text-muted small mb-2">Ends: @(listing.EndsAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "—")</p>
+                            }
+                            else
+                            {
+                                <p class="mb-2">Price: <strong>@listing.Price.ToString("N0")</strong> points</p>
+                            }
+                        </div>
+                        <div class="card-footer">
+                            @if (listing.IsOwn)
+                            {
+                                <button type="button" class="btn btn-outline-danger btn-sm ps-cancel" data-id="@listing.Id">Cancel listing</button>
+                            }
+                            else if (listing.IsAuction)
+                            {
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control ps-bid-amount" data-id="@listing.Id"
+                                           min="@listing.NextMinBid" value="@listing.NextMinBid" />
+                                    <button type="button" class="btn btn-primary ps-bid" data-id="@listing.Id">Bid</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-primary btn-sm ps-buy" data-id="@listing.Id">Buy</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        async function psMarketPost(url, data) {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            data.__RequestVerificationToken = token;
+            try {
+                var resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(data)
+                });
+                if (resp.ok) { location.reload(); }
+                else { alert(await resp.text() || 'Action failed.'); }
+            } catch (e) { alert('Action failed. Please try again.'); }
+        }
+
+        document.querySelectorAll('.ps-buy').forEach(function (b) {
+            b.addEventListener('click', function () { psMarketPost('/pointshop2/market/buy', { listingId: b.dataset.id }); });
+        });
+        document.querySelectorAll('.ps-cancel').forEach(function (b) {
+            b.addEventListener('click', function () { psMarketPost('/pointshop2/market/cancel', { listingId: b.dataset.id }); });
+        });
+        document.querySelectorAll('.ps-bid').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var amt = document.querySelector('.ps-bid-amount[data-id="' + b.dataset.id + '"]').value;
+                psMarketPost('/pointshop2/market/bid', { listingId: b.dataset.id, amount: amt });
+            });
+        });
+    </script>
+}

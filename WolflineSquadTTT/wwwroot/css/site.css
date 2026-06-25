@@ -221,6 +221,17 @@ footer.footer a:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
+.ps-market-chip {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    word-break: break-word;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
 .ps-slot .ps-name {
     font-size: 0.7rem;
     line-height: 1.1;

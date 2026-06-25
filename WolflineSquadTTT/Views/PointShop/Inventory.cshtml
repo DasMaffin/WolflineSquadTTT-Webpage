@@ -55,6 +55,7 @@
                         {
                             PointShopItem item = Model.Items[i];
                             <div class="ps-slot filled ps-type-@item.TypeKey"
+                                 data-kinv-id="@item.KinvItemId" data-item-name="@item.Name"
                                  title="@item.Name@(item.Category != null ? " — " + item.Category : "")">
                                 <span class="ps-name">@item.Name</span>
                                 @if (item.Quantity > 1)
@@ -106,8 +107,56 @@
 </div>
 
 <div id="ps-context-menu" class="ps-context-menu" role="menu">
+    <button type="button" class="ps-context-item" data-action="sell" style="display:none;">Sell on market</button>
     <button type="button" class="ps-context-item" data-action="default">Show default options</button>
 </div>
+
+@if (Model.IsSelf)
+{
+    <div class="modal fade" id="ps-sell-modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sell on market</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Listing: <strong id="ps-sell-itemname"></strong></p>
+                    <input type="hidden" id="ps-sell-kinvid" />
+                    <div class="mb-3">
+                        <label class="form-label d-block">Listing type</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="ps-sell-type" id="ps-sell-fixed" value="FixedPrice" checked>
+                            <label class="form-check-label" for="ps-sell-fixed">Fixed price</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="ps-sell-type" id="ps-sell-auction" value="Auction">
+                            <label class="form-check-label" for="ps-sell-auction">Auction</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" id="ps-sell-price-label" for="ps-sell-price">Price (points)</label>
+                        <input type="number" min="1" class="form-control" id="ps-sell-price" />
+                    </div>
+                    <div class="mb-3" id="ps-sell-duration-wrap" style="display:none;">
+                        <label class="form-label" for="ps-sell-duration">Auction duration</label>
+                        <select class="form-select" id="ps-sell-duration">
+                            <option value="6">6 hours</option>
+                            <option value="12">12 hours</option>
+                            <option value="24" selected>24 hours</option>
+                            <option value="48">2 days</option>
+                            <option value="72">3 days</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="ps-sell-submit">List item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @section Scripts {
     @if (Model.IsSelf && Model.Found)
@@ -148,13 +197,21 @@
             var scope = document.querySelector('.ps-inventory');
             if (!menu || !scope) return;
 
+            var psIsSelf = @(Model.IsSelf ? "true" : "false");
+            var sellItem = menu.querySelector('[data-action="sell"]');
             var bypassNext = false;
+            var ctxTile = null;
 
             scope.addEventListener('contextmenu', function (e) {
                 // One real right-click after "Show default options" is allowed through to the browser's menu —
                 // browsers don't permit opening the native context menu programmatically.
                 if (bypassNext) { bypassNext = false; return; }
                 e.preventDefault();
+
+                ctxTile = psIsSelf ? e.target.closest('.ps-grid .ps-slot.filled') : null;
+                var kinvId = ctxTile ? parseInt(ctxTile.getAttribute('data-kinv-id') || '0', 10) : 0;
+                if (sellItem) sellItem.style.display = kinvId > 0 ? 'block' : 'none';
+
                 menu.classList.add('show');
                 var x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 6);
                 var y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 6);
@@ -173,6 +230,66 @@
                 hide();
                 bypassNext = true;
             });
+
+            if (sellItem) {
+                sellItem.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    hide();
+                    if (!ctxTile) return;
+                    var kinvId = parseInt(ctxTile.getAttribute('data-kinv-id') || '0', 10);
+                    var name = ctxTile.getAttribute('data-item-name') || 'item';
+                    if (kinvId > 0 && window.psOpenSellModal) window.psOpenSellModal(kinvId, name);
+                });
+            }
         })();
     </script>
+
+    @if (Model.IsSelf)
+    {
+        <script>
+            window.psOpenSellModal = function (kinvId, name) {
+                document.getElementById('ps-sell-kinvid').value = kinvId;
+                document.getElementById('ps-sell-itemname').textContent = name;
+                document.getElementById('ps-sell-price').value = '';
+                document.getElementById('ps-sell-fixed').checked = true;
+                document.getElementById('ps-sell-duration-wrap').style.display = 'none';
+                document.getElementById('ps-sell-price-label').textContent = 'Price (points)';
+                new bootstrap.Modal(document.getElementById('ps-sell-modal')).show();
+            };
+
+            document.querySelectorAll('input[name="ps-sell-type"]').forEach(function (r) {
+                r.addEventListener('change', function () {
+                    var auction = document.getElementById('ps-sell-auction').checked;
+                    document.getElementById('ps-sell-duration-wrap').style.display = auction ? 'block' : 'none';
+                    document.getElementById('ps-sell-price-label').textContent = auction ? 'Starting price (points)' : 'Price (points)';
+                });
+            });
+
+            document.getElementById('ps-sell-submit').addEventListener('click', async function () {
+                var kinvId = document.getElementById('ps-sell-kinvid').value;
+                var price = document.getElementById('ps-sell-price').value;
+                var auction = document.getElementById('ps-sell-auction').checked;
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                if (!price || parseInt(price, 10) <= 0) { alert('Enter a price greater than 0.'); return; }
+
+                var body = new URLSearchParams({
+                    kinvItemId: kinvId,
+                    type: auction ? 'Auction' : 'FixedPrice',
+                    price: price,
+                    __RequestVerificationToken: token
+                });
+                if (auction) body.append('durationHours', document.getElementById('ps-sell-duration').value);
+
+                try {
+                    var resp = await fetch('/pointshop2/market/list', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body
+                    });
+                    if (resp.ok) { location.reload(); }
+                    else { alert(await resp.text() || 'Could not list that item.'); }
+                } catch (e) { alert('Could not list that item. Please try again.'); }
+            });
+        </script>
+    }
 }
