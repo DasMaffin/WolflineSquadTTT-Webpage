@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using WolflineSquadTTT.Models;
@@ -63,7 +64,20 @@ namespace WolflineSquadTTT.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            IExceptionHandlerPathFeature? feature = HttpContext.Features.Get<IExceptionHandlerPathFeature>();
+            Exception? ex = feature?.Error;
+
+            ErrorViewModel model = new ErrorViewModel
+            {
+                RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+                Message = ex?.Message,
+                ExceptionType = ex?.GetType().Name,
+                Path = feature?.Path,
+                // Full stack trace only in Development — don't leak it to end users in production.
+                StackTrace = _env.IsDevelopment() ? ex?.ToString() : null
+            };
+
+            return View(model);
         }
     }
 }

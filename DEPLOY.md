@@ -22,6 +22,18 @@ are made; check items off once they're live. Most recent first.
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
+- Resilience (2026-06-25): a DB outage (or any unhandled error) now renders the styled **/Home/Error** page
+  **showing the real exception message + type** instead of a raw host 500 (full stack trace included only in
+  Development, via `IExceptionHandlerPathFeature`). `UseExceptionHandler` moved to the **top** of the pipeline
+  so it wraps `LoginCookieMiddleware` (which touches the DB on rights cache-miss) and is now **active in all
+  environments** (it replaces the default developer exception page, so the page is verifiable locally too).
+  `LoginCookieMiddleware` now **catches DB failures and degrades**
+  instead of throwing; `Error.cshtml` is **self-contained** (`Layout=null`, inline styles — no DB/Steam/
+  session/CSS dependency) so it renders even when the whole backend is down. Guest pages that don't need the
+  DB (e.g. the home page when logged out) still load normally. Also replaced `ServerVersion.AutoDetect` with
+  an explicit `MariaDbServerVersion(11.5.2)` so EF doesn't open a DB connection just to configure itself —
+  the **no-SQL-server-at-all** case (connection refused) is now handled too, not just a reachable-but-erroring
+  DB. (Bump the version constant if the MariaDB server is upgraded.) Code-only, no migration/config.
 - Login types (2026-06-25): sessions are tagged `Session["AuthType"]` = `Web` or `Gmod`. **Web logins** set
   the persistent `WolflineLogin` cookie; **GMod logins** (in-game token consume) do **not** — session-scoped,
   re-authenticated via a fresh token each time. The nav shows a green **"GMod authenticated" badge with no

@@ -34,10 +34,14 @@ namespace WolflineSquadTTT
             builder.Services.AddTransient<MySqlConnection>(_ =>
                 new MySqlConnection(connStr));
 
+            // Explicit version instead of ServerVersion.AutoDetect: AutoDetect opens a DB connection just to
+            // configure EF, so a down/absent SQL server would fail before the app could even serve the error
+            // page. With a fixed version, EF only touches the DB for real queries (all behind the exception
+            // handler). The instance is MariaDB 11.5.2 — bump this if the server is upgraded.
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseMySql(
                     connStr,
-                    ServerVersion.AutoDetect(connStr)
+                    new MariaDbServerVersion(new Version(11, 5, 2))
                 )
             );
 
@@ -66,17 +70,18 @@ namespace WolflineSquadTTT
             builder.Services.AddMemoryCache();
             WebApplication app = builder.Build();
 
+            // Exception handling wraps everything below it (incl. the DB-touching LoginCookieMiddleware) so any
+            // failure — even a fully unreachable SQL server — renders the styled /Home/Error page with the real
+            // exception message. Active in all environments (it replaces the default dev exception page; the page
+            // itself shows the full stack trace only in Development) so it's verifiable locally too.
+            app.UseExceptionHandler("/Home/Error");
+
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseWebSockets();
             app.UseSession();
             app.UseMiddleware<LoginCookieMiddleware>();
 
-            // Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
-            {
-                app.UseExceptionHandler("/Home/Error");
-            }
             app.UseRouting();
 
             app.UseAuthorization();
