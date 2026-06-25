@@ -32,6 +32,10 @@ namespace WolflineSquadTTT.Models.Enums
         /// Allows user to view and answer polls.
         /// </summary>
         [PermissionGroup("Poll")] ViewPolls = 7,
+        /// <summary>
+        /// Allows user to view individual poll responses (which user picked what).
+        /// </summary>
+        [PermissionGroup("Poll")] ViewIndividualResponses = 8,
 
         /// <summary>
         /// Allows user to do anything. Use with caution!

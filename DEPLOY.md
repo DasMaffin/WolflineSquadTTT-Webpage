@@ -35,6 +35,10 @@ All in the current build; the running instance must be restarted/redeployed:
 - Stats upload API: `POST /api/Stats` (key in `X-Api-Key` header) full-replaces `wwwroot/data/roundData.json`
   via `DataWriterService.WriteRoundData`. File-backed, **no DB migration**. (Ensure the host's `wwwroot/data`
   is writable + persisted.)
+- Individual poll responses: new `ViewIndividualResponses` permission (enum=8) + `GET /Polls/Responses/{id}`
+  (per-user answer table, SteamID→name resolved via `SteamService`) + button on the Results page. Manage-Polls
+  cards gained a "View results" button; the header gained a "Permissions" tab for `ManageRights` holders.
+  **No DB migration** (permission is just an enum value). GDPR/Privacy updated (responses are not anonymous).
 
 ## Runtime / host
 - `DataProtection-Keys/` is created under the app content root at runtime (gitignored). The host path

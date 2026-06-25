@@ -12,12 +12,14 @@ namespace WolflineSquadTTT.Controllers
         private readonly IPollService _pollService;
         private readonly IRewardService _rewardService;
         private readonly IUserService _userService;
+        private readonly ISteamService _steamService;
 
-        public PollsController(IPollService pollService, IRewardService rewardService, IUserService userService)
+        public PollsController(IPollService pollService, IRewardService rewardService, IUserService userService, ISteamService steamService)
         {
             _pollService = pollService;
             _rewardService = rewardService;
             _userService = userService;
+            _steamService = steamService;
         }
 
         [RequiresPermission(Permission.ViewPolls)]
@@ -76,6 +78,25 @@ namespace WolflineSquadTTT.Controllers
             PollResultsViewModel? model = await _pollService.GetResultsAsync(id);
             if (model == null)
                 return NotFound();
+
+            return View(model);
+        }
+
+        [HttpGet("/Polls/Responses/{id}")]
+        [RequiresPermission(Permission.ViewIndividualResponses)]
+        public async Task<IActionResult> Responses(int id)
+        {
+            PollResponsesViewModel? model = await _pollService.GetIndividualResponsesAsync(id);
+            if (model == null)
+                return NotFound();
+
+            // Resolve SteamIDs to display names (same Steam API the Stats page uses).
+            foreach (UserResponse response in model.Responses)
+            {
+                response.DisplayName = ulong.TryParse(response.SteamId, out ulong steamId64)
+                    ? await _steamService.GetPrettyNameAsync(steamId64)
+                    : response.SteamId;
+            }
 
             return View(model);
         }

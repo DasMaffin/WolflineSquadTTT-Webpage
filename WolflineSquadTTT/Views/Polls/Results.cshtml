@@ -1,9 +1,11 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 @model PollResultsViewModel
 @{
     Poll poll = Model.Poll;
     ViewData["Title"] = $"Results: {poll.Title}";
     bool ranked = poll.Kind == PollType.Ranking;
     int totalVotes = Model.Results.Sum(r => r.VoteCount);
+    var session = HttpContextAccessor.HttpContext!.Session;
 }
 
 <div class="poll-panel my-4">
@@ -38,4 +40,8 @@
     </table>
 
     <a class="btn btn-secondary" asp-action="Index">Back to polls</a>
+    @if (PermissionHelper.HasPermission(session, Permission.ViewIndividualResponses))
+    {
+        <a class="btn btn-primary" asp-action="Responses" asp-route-id="@poll.ID">View individual responses</a>
+    }
 </div>

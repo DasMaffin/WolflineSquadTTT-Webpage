@@ -1,0 +1,45 @@
+@model PollResponsesViewModel
+@{
+    Poll poll = Model.Poll;
+    ViewData["Title"] = $"Responses: {poll.Title}";
+}
+
+<div class="poll-panel my-4">
+    <h1>@poll.Title</h1>
+    <p class="text-muted">@poll.Kind poll &middot; @Model.Responses.Count respondent(s)</p>
+
+    @if (!Model.Responses.Any())
+    {
+        <p class="text-muted">No responses yet.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Selected answer(s)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (UserResponse response in Model.Responses)
+                {
+                    <tr>
+                        <td>
+                            <a href="https://steamcommunity.com/profiles/@response.SteamId" target="_blank" rel="noopener noreferrer">@response.DisplayName</a>
+                            <div class="text-muted small">@response.SteamId</div>
+                        </td>
+                        <td>
+                            @foreach (string answer in response.Answers)
+                            {
+                                <div>@answer</div>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <a class="btn btn-secondary" asp-action="Results" asp-route-id="@poll.ID">Back to results</a>
+</div>

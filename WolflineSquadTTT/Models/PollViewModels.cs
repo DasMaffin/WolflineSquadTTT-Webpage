@@ -27,4 +27,21 @@ namespace WolflineSquadTTT.Models
         /// </summary>
         public double? AveragePlacement { get; set; }
     }
+
+    public class PollResponsesViewModel
+    {
+        public Poll Poll { get; set; } = null!;
+        public List<UserResponse> Responses { get; set; } = new();
+    }
+
+    public class UserResponse
+    {
+        public string SteamId { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The user's picks. For ranking polls each entry is prefixed with its placement.
+        /// </summary>
+        public List<string> Answers { get; set; } = new();
+    }
 }

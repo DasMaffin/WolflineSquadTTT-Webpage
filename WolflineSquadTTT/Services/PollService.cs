@@ -16,6 +16,7 @@ namespace WolflineSquadTTT.Services
         Task<HashSet<int>> GetAnsweredPollIdsAsync(int userId);
         Task SubmitAnswerAsync(int pollId, int userId, List<int> optionIds);
         Task<PollResultsViewModel?> GetResultsAsync(int pollId);
+        Task<PollResponsesViewModel?> GetIndividualResponsesAsync(int pollId);
     }
 
     public class PollService : IPollService
@@ -216,6 +217,37 @@ namespace WolflineSquadTTT.Services
                 Poll = poll,
                 Results = results
             };
+        }
+
+        public async Task<PollResponsesViewModel?> GetIndividualResponsesAsync(int pollId)
+        {
+            Poll? poll = await GetPollWithOptionsAsync(pollId);
+            if (poll == null)
+                return null;
+
+            bool ranked = poll.Kind == PollType.Ranking;
+
+            List<UserPollOptionVote> votes = await _db.UserPollOptionVote
+                .Where(v => v.PollOption.PollFK == pollId)
+                .Include(v => v.PollOption)
+                .Include(v => v.User)
+                .ToListAsync();
+
+            List<UserResponse> responses = votes
+                .GroupBy(v => v.User.SteamId)
+                .Select(g => new UserResponse
+                {
+                    SteamId = g.Key,
+                    Answers = ranked
+                        ? g.OrderBy(v => v.Placement ?? int.MaxValue)
+                           .Select(v => $"{v.Placement}. {v.PollOption.OptionDescription}")
+                           .ToList()
+                        : g.Select(v => v.PollOption.OptionDescription).ToList()
+                })
+                .OrderBy(r => r.SteamId)
+                .ToList();
+
+            return new PollResponsesViewModel { Poll = poll, Responses = responses };
         }
     }
 }

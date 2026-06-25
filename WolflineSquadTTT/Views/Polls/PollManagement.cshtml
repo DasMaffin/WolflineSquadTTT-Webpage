@@ -91,7 +91,8 @@
                         <small class="text-muted">Ends: @(poll.EndDate?.ToString("yyyy-MM-dd") ?? "No date")</small>
                     </p>
                 </div>
-                <div class="card-footer d-flex justify-content-between">
+                <div class="card-footer d-flex gap-2 flex-wrap">
+                    <a class="btn btn-sm btn-outline-info" asp-action="Results" asp-route-id="@poll.ID">View results</a>
                     @if (PermissionHelper.HasPermission(session, Permission.EditPoll))
                     {
                         <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal@(poll.ID)">Edit</button>
