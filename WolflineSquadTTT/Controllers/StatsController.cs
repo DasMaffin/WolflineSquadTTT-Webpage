@@ -43,6 +43,7 @@ namespace WolflineSquadTTT.Controllers
             long end = ((DateTimeOffset)model.EndDate.Value.AddDays(1)).ToUnixTimeSeconds();
 
             Dictionary<string, double[]> resolvedResult = new Dictionary<string, double[]>();
+            Dictionary<string, double[]> hourlyBySteamId = new Dictionary<string, double[]>();
 
             foreach (string steamId in model.SteamIds)
             {
@@ -85,12 +86,28 @@ namespace WolflineSquadTTT.Controllers
 
                         current = current.AddMinutes(1);
                     }
-
-                    string prettyName = await _steamService.GetPrettyNameAsync(ulong.Parse(steamId));
-                    resolvedResult[prettyName] = hourly;
                 }
-                model.Result = resolvedResult;
+
+                hourlyBySteamId[steamId] = hourly;
             }
+
+            // Resolve all names in one batched Steam API call (globally cached for the last 100 ids).
+            List<ulong> resolveIds = hourlyBySteamId.Keys
+                .Select(s => ulong.TryParse(s, out ulong sid) ? sid : 0UL)
+                .Where(sid => sid != 0)
+                .ToList();
+
+            Dictionary<ulong, string> names = await _steamService.GetPrettyNamesAsync(resolveIds);
+
+            foreach (KeyValuePair<string, double[]> entry in hourlyBySteamId)
+            {
+                string prettyName = ulong.TryParse(entry.Key, out ulong sid) && names.TryGetValue(sid, out string? n)
+                    ? n
+                    : entry.Key;
+                resolvedResult[prettyName] = entry.Value;
+            }
+
+            model.Result = resolvedResult;
 
             return View(model);
         }

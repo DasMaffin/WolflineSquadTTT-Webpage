@@ -90,11 +90,18 @@ namespace WolflineSquadTTT.Controllers
             if (model == null)
                 return NotFound();
 
-            // Resolve SteamIDs to display names (same Steam API the Stats page uses).
+            // Resolve SteamIDs to display names in one batched Steam API call (avoids rate limits).
+            List<ulong> steamIds = model.Responses
+                .Select(r => ulong.TryParse(r.SteamId, out ulong sid) ? sid : 0UL)
+                .Where(sid => sid != 0)
+                .ToList();
+
+            Dictionary<ulong, string> names = await _steamService.GetPrettyNamesAsync(steamIds);
+
             foreach (UserResponse response in model.Responses)
             {
-                response.DisplayName = ulong.TryParse(response.SteamId, out ulong steamId64)
-                    ? await _steamService.GetPrettyNameAsync(steamId64)
+                response.DisplayName = ulong.TryParse(response.SteamId, out ulong sid) && names.TryGetValue(sid, out string? name)
+                    ? name
                     : response.SteamId;
             }
 

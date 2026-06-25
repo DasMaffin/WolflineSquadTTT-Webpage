@@ -25,6 +25,8 @@ All in the current build; the running instance must be restarted/redeployed:
 - Live permissions: per-user rights cache (`UserRightsCache`/MemoryCache) refreshed into the session by
   `LoginCookieMiddleware` each request and invalidated on write by `UserRightService`. Admin rights
   changes take effect on the user's next request (no re-login). No DB migration.
+- Steam name resolution: global LRU cache (`ISteamNameCache` singleton, last 100 SteamIDs) shared across
+  requests; Stats + poll-responses pages use batched `GetPrettyNamesAsync` (≤100 ids/call). No DB migration.
 - UI/UX: `.poll-panel` styling, square-✕ radios/checkboxes, drag-to-rank (FLIP animation),
   Add-Poll client validation, button-visibility + modal-backdrop fixes.
 - Home/layout: SteamID moved to the footer (bottom-right, every page); home page shows the logged-in
@@ -36,7 +38,8 @@ All in the current build; the running instance must be restarted/redeployed:
   via `DataWriterService.WriteRoundData`. File-backed, **no DB migration**. (Ensure the host's `wwwroot/data`
   is writable + persisted.)
 - Individual poll responses: new `ViewIndividualResponses` permission (enum=8) + `GET /Polls/Responses/{id}`
-  (per-user answer table, SteamID→name resolved via `SteamService`) + button on the Results page. Manage-Polls
+  (per-user answer table, SteamID→name resolved via batched `SteamService.GetPrettyNamesAsync`, ≤100 ids/call)
+  + button on the Results page. Manage-Polls
   cards gained a "View results" button; the header gained a "Permissions" tab for `ManageRights` holders.
   **No DB migration** (permission is just an enum value). GDPR/Privacy updated (responses are not anonymous).
 
