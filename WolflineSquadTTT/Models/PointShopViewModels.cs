@@ -4,6 +4,7 @@ namespace WolflineSquadTTT.Models
     {
         public bool Found { get; set; }
         public bool IsSelf { get; set; } = true;
+        public bool SocketConnected { get; set; }
         public string PlayerName { get; set; } = "";
         public long Points { get; set; }
         public long PremiumPoints { get; set; }

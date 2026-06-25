@@ -43,7 +43,8 @@ All in the current build; the running instance must be restarted/redeployed:
   - Redesign (2026-06-25): in-game-style **slot grid** (unequipped items filling `inventories.numSlots`, in
     purchase order — no slot index is stored) + separate **equipment panel** (`ps2_equipmentslot`), three
     wallet currencies (Points / Premium / **EasterEggs**), Airdrop **currency-bundle** tiles (null-persistence
-    `kinv_items`, amount from `data` JSON), and one **colour per item type**. Code-only, **no migration**.
+    `kinv_items`, amount from `data` JSON), and one **colour per item type** + a colour **legend** beside the
+    equipment panel (only the types the inventory actually contains). Code-only, **no migration**.
   - Unequip + live reload (2026-06-25): double-clicking your own equipped item → `POST /pointshop2/unequip`
     (`[RequiresLogin]` + antiforgery; ownership enforced by the session SteamID) **writes the game DB**
     (returns the item to `kinv_items.inventory_id`, clears `ps2_equipmentslot.itemId`) then pushes a
@@ -56,8 +57,9 @@ All in the current build; the running instance must be restarted/redeployed:
       `GMod.kinv_items` (it was read-only `SELECT`). Until granted, unequip returns 400/throws.
     - ⚠️ **Test against `GModTest` first** (same-schema copy) before pointing at live `GMod` — this mutates
       real inventories and couldn't be tested from here (read-only access).
-- Pointshop 2 market (2026-06-25): `/pointshop2/market` (`MarketController`, `[RequiresLogin]`) — list items
-  for **fixed-price sale or auction**, buy, bid, cancel. Listings live in the website DB (`MarketListing` +
+- Pointshop 2 market (2026-06-25): `/pointshop2/market` (`MarketController`) — **Index is public/guest-viewable**
+  (read-only: guests see listings + a "Log in to trade" prompt, no action buttons); the list/buy/bid/cancel
+  actions are `[RequiresLogin]`. Listing types: **fixed-price sale or auction**. Listings live in the website DB (`MarketListing` +
   `AddMarket` migration); the listed item is **escrowed in the game DB** (`kinv_items.inventory_id` cleared)
   and moves on sale; **points only**. Selling is launched from the inventory right-click → "Sell on market"
   modal. `AuctionCloserService` (hosted `BackgroundService`, 30 s) settles expired auctions. Every trade

@@ -7,7 +7,6 @@ using WolflineSquadTTT.Services;
 namespace WolflineSquadTTT.Controllers
 {
     [Route("pointshop2/market")]
-    [RequiresLogin]
     public class MarketController : Controller
     {
         private const string SocketDownMessage =
@@ -29,12 +28,14 @@ namespace WolflineSquadTTT.Controllers
             MarketIndexViewModel model = new MarketIndexViewModel
             {
                 Listings = await _market.GetActiveListingsAsync(steamId),
-                SocketConnected = _hub.HasActiveConnection
+                SocketConnected = _hub.HasActiveConnection,
+                IsLoggedIn = !string.IsNullOrEmpty(steamId)
             };
             return View(model);
         }
 
         [HttpPost("list")]
+        [RequiresLogin]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> List([FromForm] int kinvItemId, [FromForm] MarketListingType type, [FromForm] long price, [FromForm] int? durationHours)
         {
@@ -43,6 +44,7 @@ namespace WolflineSquadTTT.Controllers
         }
 
         [HttpPost("buy")]
+        [RequiresLogin]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Buy([FromForm] int listingId)
         {
@@ -51,6 +53,7 @@ namespace WolflineSquadTTT.Controllers
         }
 
         [HttpPost("bid")]
+        [RequiresLogin]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Bid([FromForm] int listingId, [FromForm] long amount)
         {
@@ -59,6 +62,7 @@ namespace WolflineSquadTTT.Controllers
         }
 
         [HttpPost("cancel")]
+        [RequiresLogin]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel([FromForm] int listingId)
         {

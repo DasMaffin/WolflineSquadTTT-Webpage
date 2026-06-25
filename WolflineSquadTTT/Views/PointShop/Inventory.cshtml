@@ -5,6 +5,27 @@
     string heading = Model.IsSelf
         ? "My Inventory"
         : (Model.Found ? $"{Model.PlayerName}'s Inventory" : "Player Inventory");
+
+    string[] typeOrder = { "weapon", "singleuse", "model", "container", "trail", "hat", "key", "crate", "role", "currency", "other" };
+    Dictionary<string, string> typeLabels = new()
+    {
+        ["weapon"] = "Weapons",
+        ["singleuse"] = "Single-use weapons",
+        ["model"] = "Player models",
+        ["container"] = "Model containers",
+        ["trail"] = "Trails",
+        ["hat"] = "Hats & accessories",
+        ["key"] = "Keys",
+        ["crate"] = "Crates",
+        ["role"] = "Role control",
+        ["currency"] = "Currency",
+        ["other"] = "Other"
+    };
+    List<string> presentTypes = Model.Items.Select(i => i.TypeKey)
+        .Concat(Model.Equipment.Where(e => e.Item != null).Select(e => e.Item!.TypeKey))
+        .Distinct()
+        .OrderBy(k => Array.IndexOf(typeOrder, k))
+        .ToList();
 }
 
 <div class="poll-panel my-4 ps-inventory">
@@ -99,6 +120,21 @@
                                 <span class="ps-equip-label">@slot.SlotName</span>
                             </div>
                         }
+                    </div>
+                }
+
+                @if (presentTypes.Any())
+                {
+                    <div class="ps-legend mt-4">
+                        <div class="ps-grid-head"><span>Legend</span></div>
+                        @foreach (string key in presentTypes)
+                        {
+                            <div class="ps-legend-row">
+                                <span class="ps-legend-swatch ps-type-@key"></span>
+                                <span class="ps-legend-label">@typeLabels[key]</span>
+                            </div>
+                        }
+                        <div class="ps-legend-hint">Right-click any item for more options</div>
                     </div>
                 }
             </div>
@@ -247,7 +283,13 @@
     @if (Model.IsSelf)
     {
         <script>
+            var psSocketConnected = @(Model.SocketConnected ? "true" : "false");
+
             window.psOpenSellModal = function (kinvId, name) {
+                if (!psSocketConnected) {
+                    alert("Server connection could not be established. Make sure the Garry's Mod server is running and connected to change items. Inform the administrator about this.");
+                    return;
+                }
                 document.getElementById('ps-sell-kinvid').value = kinvId;
                 document.getElementById('ps-sell-itemname').textContent = name;
                 document.getElementById('ps-sell-price').value = '';

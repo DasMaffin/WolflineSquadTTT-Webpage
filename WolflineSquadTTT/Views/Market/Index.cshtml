@@ -6,10 +6,20 @@
 <div class="poll-panel my-4 ps-inventory">
     <div class="ps-topbar">
         <div class="ps-title">Market</div>
-        <a class="btn btn-outline-light btn-sm" asp-controller="PointShop" asp-action="Inventory">My inventory</a>
+        @if (Model.IsLoggedIn)
+        {
+            <a class="btn btn-outline-light btn-sm" asp-controller="PointShop" asp-action="Inventory">My inventory</a>
+        }
+        else
+        {
+            <a class="btn btn-outline-light btn-sm" href="/auth/steam">Log in to trade</a>
+        }
     </div>
 
-    @Html.AntiForgeryToken()
+    @if (Model.IsLoggedIn)
+    {
+        @Html.AntiForgeryToken()
+    }
 
     @if (!Model.SocketConnected)
     {
@@ -19,7 +29,14 @@
         </div>
     }
 
-    <p class="text-muted">To sell something, right-click an item in <a asp-controller="PointShop" asp-action="Inventory">your inventory</a> and choose “Sell on market”.</p>
+    @if (Model.IsLoggedIn)
+    {
+        <p class="text-muted">To sell something, right-click an item in <a asp-controller="PointShop" asp-action="Inventory">your inventory</a> and choose “Sell on market”.</p>
+    }
+    else
+    {
+        <p class="text-muted">You're browsing as a guest. <a href="/auth/steam">Log in with Steam</a> to buy, sell, or bid.</p>
+    }
 
     @if (!Model.Listings.Any())
     {
@@ -62,7 +79,11 @@
                             }
                         </div>
                         <div class="card-footer">
-                            @if (listing.IsOwn)
+                            @if (!Model.IsLoggedIn)
+                            {
+                                <a href="/auth/steam" class="btn btn-outline-light btn-sm">Log in to @(listing.IsAuction ? "bid" : "buy")</a>
+                            }
+                            else if (listing.IsOwn)
                             {
                                 <button type="button" class="btn btn-outline-danger btn-sm ps-cancel" data-id="@listing.Id">Cancel listing</button>
                             }
@@ -87,6 +108,8 @@
 </div>
 
 @section Scripts {
+    @if (Model.IsLoggedIn)
+    {
     <script>
         async function psMarketPost(url, data) {
             var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -115,4 +138,5 @@
             });
         });
     </script>
+    }
 }

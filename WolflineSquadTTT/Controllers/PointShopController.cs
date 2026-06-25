@@ -29,6 +29,7 @@ namespace WolflineSquadTTT.Controllers
                 return View(new PointShopInventoryViewModel());
 
             PointShopInventoryViewModel model = await _pointShopService.GetInventoryAsync(steam64);
+            model.SocketConnected = _socketHub.HasActiveConnection;
             return View(model);
         }
 
@@ -42,6 +43,7 @@ namespace WolflineSquadTTT.Controllers
 
             PointShopInventoryViewModel model = await _pointShopService.GetInventoryAsync(steam64);
             model.IsSelf = false;
+            model.SocketConnected = _socketHub.HasActiveConnection;
             return View("Inventory", model);
         }
 
