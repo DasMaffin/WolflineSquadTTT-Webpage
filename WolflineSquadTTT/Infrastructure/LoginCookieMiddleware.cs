@@ -23,7 +23,8 @@ namespace WolflineSquadTTT.Infrastructure
             ISession session = context.Session;
 
             // Identity from the session, or from the persistent login cookie on a fresh session.
-            string? steamId = session.GetString("SteamID") ?? _loginCookieService.GetSteamId(context.Request);
+            string? sessionSteamId = session.GetString("SteamID");
+            string? steamId = sessionSteamId ?? _loginCookieService.GetSteamId(context.Request);
 
             if (steamId != null)
             {
@@ -47,6 +48,11 @@ namespace WolflineSquadTTT.Infrastructure
 
                 session.SetString("SteamID", steamId);
                 session.SetString("UserRights", JsonSerializer.Serialize(rights));
+
+                // A session rehydrated purely from the persistent cookie is always a web login (GMod logins
+                // don't set that cookie). Leave AuthType alone when the session already carried an identity.
+                if (sessionSteamId == null)
+                    session.SetString("AuthType", "Web");
             }
 
             await _next(context);

@@ -76,6 +76,10 @@
                                 <img src="/images/steam/sits_01.png" alt="Login with Steam" height="32">
                             </a>
                         }
+                        else if (HttpContextAccessor.HttpContext.Session.GetString("AuthType") == "Gmod")
+                        {
+                            <span class="badge bg-success ms-2" title="Signed in from in-game Garry's Mod">GMod authenticated</span>
+                        }
                         else
                         {
                             <a href="/auth/logout" class="btn btn-outline-danger btn-sm ms-2">

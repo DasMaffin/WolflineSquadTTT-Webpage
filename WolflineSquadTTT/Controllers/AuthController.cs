@@ -83,7 +83,7 @@ namespace WolflineSquadTTT.Controllers
             string claimedId = Request.Query["openid.claimed_id"].ToString();
             string steamId = claimedId.Split('/').Last();
 
-            await SignInAsync(steamId);
+            await SignInAsync(steamId, gmodAuthenticated: false);
 
             string returnUrl = Request.Query["returnUrl"].ToString();
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -123,7 +123,7 @@ namespace WolflineSquadTTT.Controllers
             if (steamId == null)
                 return RedirectToAction("Index", "Home");
 
-            await SignInAsync(steamId);
+            await SignInAsync(steamId, gmodAuthenticated: true);
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
@@ -131,7 +131,7 @@ namespace WolflineSquadTTT.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        private async Task SignInAsync(string steamId)
+        private async Task SignInAsync(string steamId, bool gmodAuthenticated)
         {
             await _userService.CreateNewOrFetchBySteamIdAsync(steamId);
             List<UserRight> rights = await _userRightService.GetUserRightsAsync(steamId);
@@ -141,8 +141,12 @@ namespace WolflineSquadTTT.Controllers
                 "UserRights",
                 JsonSerializer.Serialize(rights.Select(r => r.Right).ToList())
             );
+            HttpContext.Session.SetString("AuthType", gmodAuthenticated ? "Gmod" : "Web");
 
-            _loginCookieService.SignIn(Response, steamId);
+            // GMod logins re-authenticate via a fresh token each time the in-game browser opens, so they get
+            // no 30-day persistent cookie — the session stays in-game-scoped and the auth type unambiguous.
+            if (!gmodAuthenticated)
+                _loginCookieService.SignIn(Response, steamId);
         }
     }
 }

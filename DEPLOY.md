@@ -22,6 +22,10 @@ are made; check items off once they're live. Most recent first.
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
+- Login types (2026-06-25): sessions are tagged `Session["AuthType"]` = `Web` or `Gmod`. **Web logins** set
+  the persistent `WolflineLogin` cookie; **GMod logins** (in-game token consume) do **not** — session-scoped,
+  re-authenticated via a fresh token each time. The nav shows a green **"GMod authenticated" badge with no
+  Log-out button** for GMod sessions (web users still get Log out). Code-only, no migration/config.
 - Perf (2026-06-25): `_Layout` workshop thumbnails no longer hit the Steam API on every page render —
   `SteamService` caches each preview URL in `IMemoryCache` (12h) and fetches the batch in parallel. Speeds
   up **every** page (was the main per-page latency). No DB migration, no config.
