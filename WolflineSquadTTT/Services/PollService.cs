@@ -60,7 +60,15 @@ namespace WolflineSquadTTT.Services
         {
             await _db.Poll.AddAsync(poll);
             await _db.SaveChangesAsync();
-            await _webhookService.DispatchAsync(WebhookEvent.PollCreated, $"New poll: {poll.Title}");
+            await _webhookService.DispatchAsync(WebhookEvent.PollCreated, new WebhookMessage
+            {
+                Emoji = "📊",
+                Headline = "New poll",
+                Title = poll.Title,
+                Description = string.IsNullOrWhiteSpace(poll.Description) ? "A new poll is up for voting." : poll.Description,
+                RelativeUrl = "/Polls",
+                Color = 0x5865F2
+            });
         }
 
         public async Task UpdatePollAsync(int pollId, string title, string description, DateTime? endDate, int? rewardFK, int? maxSelections)

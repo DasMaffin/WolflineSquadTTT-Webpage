@@ -5,6 +5,9 @@ namespace WolflineSquadTTT.Models
     public class WebhookIndexViewModel
     {
         public List<Webhook> Webhooks { get; set; } = new();
+        public bool CanAdd { get; set; }
+        public bool CanEdit { get; set; }
+        public bool CanDelete { get; set; }
 
         // Friendly label for an event, shown in the UI.
         public static string EventLabel(WebhookEvent evt) => evt switch
@@ -12,6 +15,14 @@ namespace WolflineSquadTTT.Models
             WebhookEvent.MarketListingCreated => "New market listing",
             WebhookEvent.PollCreated => "New poll",
             _ => evt.ToString()
+        };
+
+        // Friendly label for a target application / payload style.
+        public static string FormatLabel(WebhookFormat format) => format switch
+        {
+            WebhookFormat.Generic => "Generic (raw text)",
+            WebhookFormat.Discord => "Discord (rich embed)",
+            _ => format.ToString()
         };
     }
 

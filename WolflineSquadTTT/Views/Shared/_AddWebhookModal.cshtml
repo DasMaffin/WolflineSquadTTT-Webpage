@@ -33,6 +33,21 @@
                     <label class="form-label mt-2" for="whUrl">Webhook URL</label>
                     <input type="url" class="form-control" id="whUrl" name="url" maxlength="500"
                            placeholder="https://discord.com/api/webhooks/…" required />
+
+                    <label class="form-label mt-2" for="whFormat">Application</label>
+                    <select class="form-select" id="whFormat" name="format">
+                        @foreach (WebhookFormat fmt in Enum.GetValues<WebhookFormat>())
+                        {
+                            if (fmt == WebhookFormat.Discord)
+                            {
+                                <option value="@fmt" selected>@WebhookIndexViewModel.FormatLabel(fmt)</option>
+                            }
+                            else
+                            {
+                                <option value="@fmt">@WebhookIndexViewModel.FormatLabel(fmt)</option>
+                            }
+                        }
+                    </select>
                 </div>
                 <div class="modal-footer">
                     <a class="btn btn-link me-auto" asp-controller="Webhooks" asp-action="Index">Manage all webhooks</a>

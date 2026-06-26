@@ -21,6 +21,9 @@ namespace WolflineSquadTTT.Models
         [Required]
         public WebhookEvent Event { get; set; }
 
+        // Which application the webhook targets — controls payload formatting (plain vs Discord embed).
+        public WebhookFormat Format { get; set; } = WebhookFormat.Discord;
+
         public bool Enabled { get; set; } = true;
 
         [MaxLength(32)]

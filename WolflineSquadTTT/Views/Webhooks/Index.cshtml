@@ -6,7 +6,10 @@
 
 <div class="poll-panel my-4">
     <h1 class="mb-3">Webhooks</h1>
-    <p class="text-muted">Webhooks POST a message to an external URL (e.g. a Discord channel webhook) when their event fires.</p>
+    <p class="text-muted">
+        Webhooks POST a message to an external URL when their event fires. Pick the <strong>application</strong>:
+        <em>Discord</em> sends a pretty embed, <em>Generic</em> sends plain text for any other receiver.
+    </p>
 
     @if (TempData["WebhookAdded"] != null)
     {
@@ -17,29 +20,41 @@
         <div class="alert alert-danger">@TempData["Error"]</div>
     }
 
-    <form asp-action="Add" method="post" class="row g-2 align-items-end mb-4">
-        @Html.AntiForgeryToken()
-        <div class="col-md-3">
-            <label class="form-label" for="name">Name (optional)</label>
-            <input type="text" class="form-control" id="name" name="name" maxlength="100" placeholder="e.g. Market channel" />
-        </div>
-        <div class="col-md-5">
-            <label class="form-label" for="url">Webhook URL</label>
-            <input type="url" class="form-control" id="url" name="url" maxlength="500" placeholder="https://discord.com/api/webhooks/…" required />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label" for="eventType">Event</label>
-            <select class="form-select" id="eventType" name="eventType">
-                @foreach (WebhookEvent evt in Enum.GetValues<WebhookEvent>())
-                {
-                    <option value="@evt">@WebhookIndexViewModel.EventLabel(evt)</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">Add webhook</button>
-        </div>
-    </form>
+    @if (Model.CanAdd)
+    {
+        <form asp-action="Add" method="post" class="row g-2 align-items-end mb-4">
+            @Html.AntiForgeryToken()
+            <div class="col-md-3">
+                <label class="form-label" for="name">Name (optional)</label>
+                <input type="text" class="form-control" id="name" name="name" maxlength="100" placeholder="e.g. Discord #market" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="url">Webhook URL</label>
+                <input type="url" class="form-control" id="url" name="url" maxlength="500" placeholder="https://discord.com/api/webhooks/…" required />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="eventType">Event</label>
+                <select class="form-select" id="eventType" name="eventType">
+                    @foreach (WebhookEvent evt in Enum.GetValues<WebhookEvent>())
+                    {
+                        <option value="@evt">@WebhookIndexViewModel.EventLabel(evt)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="format">Application</label>
+                <select class="form-select" id="format" name="format">
+                    @foreach (WebhookFormat fmt in Enum.GetValues<WebhookFormat>())
+                    {
+                        <option value="@fmt" selected="@(fmt == WebhookFormat.Discord)">@WebhookIndexViewModel.FormatLabel(fmt)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100">Add</button>
+            </div>
+        </form>
+    }
 
     @if (!Model.Webhooks.Any())
     {
@@ -51,6 +66,7 @@
             <thead>
                 <tr>
                     <th>Event</th>
+                    <th>Application</th>
                     <th>Name</th>
                     <th>URL</th>
                     <th></th>
@@ -66,18 +82,80 @@
                     }
                     <tr>
                         <td>@WebhookIndexViewModel.EventLabel(hook.Event)</td>
+                        <td>
+                            <span class="badge @(hook.Format == WebhookFormat.Discord ? "bg-primary" : "bg-secondary")">
+                                @WebhookIndexViewModel.FormatLabel(hook.Format)
+                            </span>
+                        </td>
                         <td>@(string.IsNullOrEmpty(hook.Name) ? "—" : hook.Name)</td>
                         <td><code class="text-info">@masked</code></td>
                         <td class="text-end">
-                            <form asp-action="Delete" method="post" onsubmit="return confirm('Delete this webhook?');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@hook.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                            </form>
+                            <div class="d-inline-flex gap-2">
+                                @if (Model.CanEdit)
+                                {
+                                    <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editWebhook@(hook.Id)">Edit</button>
+                                }
+                                @if (Model.CanDelete)
+                                {
+                                    <form asp-action="Delete" method="post" onsubmit="return confirm('Delete this webhook?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@hook.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+
+        @if (Model.CanEdit)
+        {
+            foreach (Webhook hook in Model.Webhooks)
+            {
+                <div class="modal fade" id="editWebhook@(hook.Id)" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5">Edit webhook</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form asp-action="Edit" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@hook.Id" />
+                                <div class="modal-body">
+                                    <label class="form-label">Name (optional)</label>
+                                    <input type="text" class="form-control" name="name" maxlength="100" value="@hook.Name" />
+
+                                    <label class="form-label mt-2">Webhook URL</label>
+                                    <input type="url" class="form-control" name="url" maxlength="500" value="@hook.Url" required />
+
+                                    <label class="form-label mt-2">Event</label>
+                                    <select class="form-select" name="eventType">
+                                        @foreach (WebhookEvent evt in Enum.GetValues<WebhookEvent>())
+                                        {
+                                            <option value="@evt" selected="@(evt == hook.Event)">@WebhookIndexViewModel.EventLabel(evt)</option>
+                                        }
+                                    </select>
+
+                                    <label class="form-label mt-2">Application</label>
+                                    <select class="form-select" name="format">
+                                        @foreach (WebhookFormat fmt in Enum.GetValues<WebhookFormat>())
+                                        {
+                                            <option value="@fmt" selected="@(fmt == hook.Format)">@WebhookIndexViewModel.FormatLabel(fmt)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
     }
 </div>

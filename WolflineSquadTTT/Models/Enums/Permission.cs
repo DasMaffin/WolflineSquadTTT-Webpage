@@ -48,6 +48,14 @@ namespace WolflineSquadTTT.Models.Enums
         /// Allows user to view the Pointshop 2 transaction history.
         /// </summary>
         [PermissionGroup("Pointshop 2")] ViewTransactions = 11,
+        /// <summary>
+        /// Allows user to edit existing webhooks.
+        /// </summary>
+        [PermissionGroup("Webhooks")] EditWebhooks = 12,
+        /// <summary>
+        /// Allows user to delete webhooks.
+        /// </summary>
+        [PermissionGroup("Webhooks")] DeleteWebhooks = 13,
 
         /// <summary>
         /// Allows user to do anything. Use with caution!

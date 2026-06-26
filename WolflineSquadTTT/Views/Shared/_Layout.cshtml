@@ -59,7 +59,9 @@
                                 <a class="nav-link" asp-area="" asp-controller="Administration" asp-action="PermissionManagement">Permissions</a>
                             </li>
                         }
-                        @if (PermissionHelper.HasPermission(HttpContextAccessor.HttpContext!.Session, Permission.AddWebhooks))
+                        @if (PermissionHelper.HasPermission(HttpContextAccessor.HttpContext!.Session, Permission.AddWebhooks)
+                            || PermissionHelper.HasPermission(HttpContextAccessor.HttpContext!.Session, Permission.EditWebhooks)
+                            || PermissionHelper.HasPermission(HttpContextAccessor.HttpContext!.Session, Permission.DeleteWebhooks))
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-area="" asp-controller="Webhooks" asp-action="Index">Webhooks</a>

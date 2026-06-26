@@ -156,8 +156,20 @@ namespace WolflineSquadTTT.Services
             await LogTransactionAsync(TransactionType.Added, itemName, sellerId, price);
 
             string kind = type == MarketListingType.Auction ? "Auction" : "Sale";
-            await _webhookService.DispatchAsync(WebhookEvent.MarketListingCreated,
-                $"New on the market: {itemName} — {price:N0} points ({kind})");
+            await _webhookService.DispatchAsync(WebhookEvent.MarketListingCreated, new WebhookMessage
+            {
+                Emoji = "🛒",
+                Headline = "New market listing",
+                Title = itemName,
+                Description = $"A fresh {kind.ToLowerInvariant()} just hit the marketplace.",
+                RelativeUrl = "/pointshop2/market",
+                Color = type == MarketListingType.Auction ? 0xE67E22 : 0x2ECC71,   // orange auctions / green sales
+                Fields =
+                {
+                    new WebhookField { Name = "Price", Value = $"{price:N0} points" },
+                    new WebhookField { Name = "Type", Value = kind }
+                }
+            });
 
             return MarketActionResult.Ok;
         }

@@ -23,6 +23,10 @@ are made; check items off once they're live. Most recent first.
   Added/Bought/Removed, `ItemName`, `SteamId`, `Price`; index on `OccurredAt`) — the market transaction log.
   New-table-only.
   - Dev + Prod: ⬜ apply (`dotnet ef database update`).
+- **`AddWebhookFormat`** (2026-06-26) — adds the `Format` int column to the `Webhook` table (`WebhookFormat`:
+  Generic=0 / Discord=1). Add-column only; runs after `AddWebhooks` creates the table. DB default 0, but EF always
+  sets it on insert (entity default = Discord).
+  - Dev + Prod: ⬜ apply (`dotnet ef database update`).
 - The Pointshop 2 inventory page itself is read-only against the `GMod` DB and adds no migration; the
   inventory **unequip** and **market** features only need *runtime* write privileges on the game DB (below),
   not a schema migration there.
@@ -52,6 +56,17 @@ All in the current build; the running instance must be restarted/redeployed:
   rendered on the market / poll / webhooks pages). The standalone `/webhooks` page is unchanged. No new data is
   collected (same webhook dispatch as before, no PII) and no migration — the `AddWebhooks` migration already
   covers the `Webhook` table.
+- Webhook applications + edit/delete perms (2026-06-26): webhooks now carry a **target application**
+  (`WebhookFormat`: **Generic** = raw `text/plain` body, **Discord** = a styled embed). `WebhookService.DispatchAsync`
+  now takes a structured **`WebhookMessage`** (headline/title/description/fields/url/colour) instead of a flat
+  string, and renders per format — Discord uses Discord-flavoured markdown (`##` header, `>` blockquote, masked
+  link, `-#` subtext, `<t:..:R>` live timestamp, coloured embed, footer). Callers (`MarketService`, `PollService`)
+  build a `WebhookMessage`. Two new permissions **`EditWebhooks` (enum=12)** and **`DeleteWebhooks` (enum=13)**
+  in the "Webhooks" group (enum-only). `/webhooks` now opens with **any** webhook permission (Add|Edit|Delete) and
+  gates each action to its own (add/**edit**/delete); the page gained a format column + per-row **Edit** modal, and
+  the add form + inline modal gained an **Application** selector (defaults to Discord). Nav "Webhooks" link shows
+  for any of the three perms. Needs the `AddWebhookFormat` migration. Absolute links in payloads use
+  `App:PublicBaseUrl` (defaults to `https://mwlp.dasmaffin.com` if unset). Still no PII in dispatched content.
 - Transaction history (2026-06-26): new permission **`ViewTransactions` (enum=11, group "Pointshop 2")** +
   **`GET /pointshop2/transactions`** — a time-ordered table of market transactions (Added/Bought/Removed,
   item, player name, price; SteamID→name via batched `SteamService`). `MarketService` appends a
@@ -160,6 +175,14 @@ All in the current build; the running instance must be restarted/redeployed:
   **No DB migration** (permission is just an enum value). GDPR/Privacy updated (responses are not anonymous).
 
 ## Runtime / host
+- ⚠️ **App pool MUST run as a single worker process (no web garden).** The GMod WebSocket lives in an
+  **in-memory singleton** (`GmodSocketHub`), so `HasActiveConnection` only reflects the process that holds the
+  socket. With >1 worker process, IIS pins each browser's keep-alive connection to a worker, so only users on
+  the socket-holding worker see "connected" — everyone else gets *"Server connection could not be established"*
+  / the "Trading is currently unavailable" banner while admins on the right worker can trade fine (observed
+  2026-06-26 on SmarterASP.NET `win6036.site4now.net`). Fix: set the app pool's **Maximum Worker Processes = 1**
+  (control panel or host support). Note: an app-pool recycle drops the socket — GMod must auto-reconnect.
+  A multi-worker/multi-instance deploy would need a cross-process backplane (out of scope).
 - `DataProtection-Keys/` is created under the app content root at runtime (gitignored). The host path
   must be writable and **persisted across redeploys**, or login cookies invalidate on each deploy.
 - Prod `appsettings.Production.json` (gitignored) must have: DB host `5.182.204.32:27000`, Steam API
