@@ -74,6 +74,7 @@
                         {
                             <div class="ps-slot filled ps-type-@cell.TypeKey"
                                  data-kinv-id="@cell.KinvItemId" data-item-name="@cell.Name"
+                                 data-sellable="@(cell.Sellable ? "1" : "0")"
                                  title="@cell.Name@(cell.Category != null ? " — " + cell.Category : "")">
                                 <span class="ps-name">@cell.Name</span>
                                 @if (cell.Quantity > 1)
@@ -239,11 +240,19 @@
                 // One real right-click after "Show default options" is allowed through to the browser's menu —
                 // browsers don't permit opening the native context menu programmatically.
                 if (bypassNext) { bypassNext = false; return; }
-                e.preventDefault();
 
-                ctxTile = psIsSelf ? e.target.closest('.ps-grid .ps-slot.filled') : null;
-                var kinvId = ctxTile ? parseInt(ctxTile.getAttribute('data-kinv-id') || '0', 10) : 0;
-                if (sellItem) sellItem.style.display = kinvId > 0 ? 'block' : 'none';
+                var tile = psIsSelf ? e.target.closest('.ps-grid .ps-slot.filled') : null;
+                var kinvId = tile ? parseInt(tile.getAttribute('data-kinv-id') || '0', 10) : 0;
+                var sellable = tile ? tile.getAttribute('data-sellable') === '1' : false;
+
+                // The custom menu only offers "Sell on market". If the tile can't be sold (currency/loot
+                // bundles, empty cells, someone else's inventory), don't show it at all — let the browser's
+                // native menu open instead.
+                if (kinvId <= 0 || !sellable) return;
+
+                e.preventDefault();
+                ctxTile = tile;
+                if (sellItem) sellItem.style.display = 'block';
 
                 menu.classList.add('show');
                 var x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 6);

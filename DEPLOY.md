@@ -33,6 +33,13 @@ are made; check items off once they're live. Most recent first.
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
+- Currency not sellable (2026-06-26): currency/loot-bundle tiles (`BaseClass=="currency"`) have no
+  `ps2_itempersistence` row, so the market's `ItemForSaleSql` (INNER JOIN persistence) always rejected them
+  as `InvalidItem` — but the inventory still offered "Sell on market" for them. Added `PointShopItem.Sellable`
+  (`BaseClass != "currency"`, mirrors the server's persistence requirement) → `data-sellable` on grid tiles;
+  the inventory's custom context menu now only opens on a **sellable owned tile** (currency/empty cells/other
+  players' inventories fall through to the browser's native menu — so the sell option is never shown when sale
+  is prohibited by type). Server still rejects as a backstop. Code-only, no migration.
 - In-game external links (2026-06-26): for **GMod-authenticated** sessions only (`Session["AuthType"]=="Gmod"`),
   `_Layout` loads `wwwroot/js/gmod-bridge.js`, which intercepts clicks on **external** links (different host —
   Discord, Tebex shop, Steam Workshop, …) and hands them to a Lua bridge `wlsq.openURL(url)` so they open via

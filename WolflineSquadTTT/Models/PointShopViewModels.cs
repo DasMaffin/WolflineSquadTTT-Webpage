@@ -31,6 +31,10 @@ namespace WolflineSquadTTT.Models
         // Grid slot from maffinapi_item_slots; null when the item has no assigned slot (then it stacks).
         public int? Slot { get; set; }
 
+        // Currency / loot bundles have no item-definition (ps2_itempersistence) row, so the market can't
+        // list them — selling is prohibited by type. Mirrors the server's persistence requirement.
+        public bool Sellable => BaseClass != "currency";
+
         // A short, unique-per-type key used to colour the tile (see site.css .ps-type-*).
         public string TypeKey => TypeKeyFor(BaseClass);
 
