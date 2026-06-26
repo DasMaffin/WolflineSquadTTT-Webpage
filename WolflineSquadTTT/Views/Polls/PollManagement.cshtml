@@ -59,6 +59,13 @@
                         <input name="MaxSelections" type="number" min="1" class="form-control" />
                     </div>
 
+                    <div id="userInputGroup" class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" name="AllowUserInput" value="true" id="allowUserInput" />
+                        <label class="form-check-label" for="allowUserInput">
+                            Allow user input — adds an “Other” option with a text box
+                        </label>
+                    </div>
+
                     <label class="form-label mt-2">Reward</label>
                     <select name="RewardFK" class="form-select">
                         <option value="">None</option>
@@ -187,13 +194,21 @@
     const typeSelect = document.getElementById("pollTypeSelect");
     const maxGroup = document.getElementById("maxSelectionsGroup");
     const maxInput = maxGroup.querySelector('[name="MaxSelections"]');
+    const userInputGroup = document.getElementById("userInputGroup");
+    const allowUserInput = document.getElementById("allowUserInput");
 
-    // Show + enable "max selections" only for MultiSelect polls (enum value 1);
-    // disabling when hidden keeps it out of validation and submission.
+    // Show + enable "max selections" only for MultiSelect (enum value 1), and "Allow user input"
+    // only for Basic/MultiSelect (Ranking can't have a write-in). Disabling when hidden keeps them
+    // out of validation and submission.
     function toggleMax() {
-        const show = typeSelect.value === "1";
-        maxGroup.style.display = show ? "block" : "none";
-        maxInput.disabled = !show;
+        const isMulti = typeSelect.value === "1";
+        maxGroup.style.display = isMulti ? "block" : "none";
+        maxInput.disabled = !isMulti;
+
+        const allowsInput = typeSelect.value === "0" || isMulti;
+        userInputGroup.style.display = allowsInput ? "block" : "none";
+        allowUserInput.disabled = !allowsInput;
+        if (!allowsInput) allowUserInput.checked = false;
     }
     typeSelect.addEventListener("change", toggleMax);
     toggleMax();

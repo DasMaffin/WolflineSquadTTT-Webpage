@@ -27,12 +27,23 @@ are made; check items off once they're live. Most recent first.
   Generic=0 / Discord=1). Add-column only; runs after `AddWebhooks` creates the table. DB default 0, but EF always
   sets it on insert (entity default = Discord).
   - Dev + Prod: ⬜ apply (`dotnet ef database update`).
+- **`AddPollUserInput`** (2026-06-26) — poll "Other" write-in support: `Poll.AllowUserInput` (bool),
+  `PollOption.IsUserInput` (bool), `UserPollOptionVote.WriteInText` (varchar 255, nullable). Add-column only,
+  all defaulting false/null (existing polls unaffected).
+  - Dev + Prod: ⬜ apply (`dotnet ef database update`).
 - The Pointshop 2 inventory page itself is read-only against the `GMod` DB and adds no migration; the
   inventory **unequip** and **market** features only need *runtime* write privileges on the game DB (below),
   not a schema migration there.
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
+- Poll "Other" write-in (2026-06-26): poll creation has an **"Allow user input"** checkbox (Basic + MultiSelect
+  only — hidden for Ranking). When enabled, a final **"Other"** option (`PollOption.IsUserInput`) is added; on the
+  answer page it renders with a free-text box, and the voter's text is stored on their vote
+  (`UserPollOptionVote.WriteInText`). Results list the submitted "Other" answers below the table; the individual-
+  responses page shows `Other: <text>`. Empty "Other" text when selected is rejected (client `required` + server
+  guard); the text box also works without JS (server ignores it unless "Other" is chosen). Editing a poll doesn't
+  toggle this (options aren't editable post-create, per existing behaviour). Needs the `AddPollUserInput` migration.
 - Market guest login returns to market (2026-06-26): the market's three guest "Log in" links (topbar, intro,
   per-listing) pointed at bare `/auth/steam`, so login dropped the user on the home page. They now pass
   `?returnUrl=<current path>` (threaded through the Steam OpenID round-trip, local-URL-guarded) so the user

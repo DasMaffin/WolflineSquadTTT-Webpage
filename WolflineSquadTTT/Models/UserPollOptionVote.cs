@@ -30,6 +30,12 @@ namespace WolflineSquadTTT.Models
         /// </summary>
         public int? Placement { get; set; }
 
+        /// <summary>
+        /// Free-text answer when the picked option is the "Other" write-in option. Null otherwise.
+        /// </summary>
+        [MaxLength(255)]
+        public string? WriteInText { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

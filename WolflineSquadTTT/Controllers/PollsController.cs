@@ -54,13 +54,13 @@ namespace WolflineSquadTTT.Controllers
         [HttpPost("/Polls/Answer/{id}")]
         [ValidateAntiForgeryToken]
         [RequiresPermission(Permission.ViewPolls)]
-        public async Task<IActionResult> Answer(int id, List<int> optionIds)
+        public async Task<IActionResult> Answer(int id, List<int> optionIds, string? writeInText)
         {
             User user = await CurrentUserAsync();
 
             try
             {
-                await _pollService.SubmitAnswerAsync(id, user.Id, optionIds ?? new List<int>());
+                await _pollService.SubmitAnswerAsync(id, user.Id, optionIds ?? new List<int>(), writeInText);
             }
             catch (InvalidOperationException ex)
             {
@@ -145,8 +145,16 @@ namespace WolflineSquadTTT.Controllers
             poll.EndDate = model.EndDate;
             poll.RewardFK = model.RewardFK;
 
+            // "Other" write-in is only offered on Basic / MultiSelect polls.
+            bool allowUserInput = model.AllowUserInput
+                && (model.PollType == PollType.Basic || model.PollType == PollType.MultiSelect);
+            poll.AllowUserInput = allowUserInput;
+
             for (int i = 0; i < options.Count; i++)
                 poll.Options.Add(new PollOption { OptionDescription = options[i], DisplayOrder = i });
+
+            if (allowUserInput)
+                poll.Options.Add(new PollOption { OptionDescription = "Other", DisplayOrder = options.Count, IsUserInput = true });
 
             await _pollService.CreatePollAsync(poll);
 

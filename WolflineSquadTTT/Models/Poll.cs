@@ -19,6 +19,10 @@ namespace WolflineSquadTTT.Models
 
         public DateTime? EndDate { get; set; }
 
+        // When true, a final "Other" option (PollOption.IsUserInput) lets voters write in their own answer.
+        // Only meaningful for Basic / MultiSelect polls.
+        public bool AllowUserInput { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [ForeignKey(nameof(Reward))]

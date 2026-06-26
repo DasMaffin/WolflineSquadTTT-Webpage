@@ -91,6 +91,13 @@
         font-size: 1.05rem;
     }
 
+    /* "Other" write-in box sits under its option, aligned past the choice box. */
+    .poll-writein {
+        margin-top: -4px;
+        margin-left: 48px;
+        width: calc(100% - 48px);
+    }
+
     /* Ranking */
     .poll-rank-list {
         list-style: none;
@@ -191,11 +198,23 @@
                 <div class="poll-options">
                     @foreach (PollOption option in poll.Options)
                     {
-                        <label class="poll-option">
-                            <input class="poll-choice-input" type="radio" name="optionIds" value="@option.Id" required />
-                            <span class="poll-choice-box"></span>
-                            <span class="poll-option-text">@option.OptionDescription</span>
-                        </label>
+                        if (option.IsUserInput)
+                        {
+                            <label class="poll-option">
+                                <input class="poll-choice-input poll-other-toggle" type="radio" name="optionIds" value="@option.Id" />
+                                <span class="poll-choice-box"></span>
+                                <span class="poll-option-text">Other</span>
+                            </label>
+                            <input type="text" name="writeInText" class="form-control poll-writein" maxlength="255" placeholder="Type your answer…" />
+                        }
+                        else
+                        {
+                            <label class="poll-option">
+                                <input class="poll-choice-input" type="radio" name="optionIds" value="@option.Id" required />
+                                <span class="poll-choice-box"></span>
+                                <span class="poll-option-text">@option.OptionDescription</span>
+                            </label>
+                        }
                     }
                 </div>
                 break;
@@ -209,11 +228,23 @@
                 <div class="poll-options">
                     @foreach (PollOption option in poll.Options)
                     {
-                        <label class="poll-option">
-                            <input class="poll-choice-input poll-check" type="checkbox" name="optionIds" value="@option.Id" />
-                            <span class="poll-choice-box"></span>
-                            <span class="poll-option-text">@option.OptionDescription</span>
-                        </label>
+                        if (option.IsUserInput)
+                        {
+                            <label class="poll-option">
+                                <input class="poll-choice-input poll-check poll-other-toggle" type="checkbox" name="optionIds" value="@option.Id" />
+                                <span class="poll-choice-box"></span>
+                                <span class="poll-option-text">Other</span>
+                            </label>
+                            <input type="text" name="writeInText" class="form-control poll-writein" maxlength="255" placeholder="Type your answer…" />
+                        }
+                        else
+                        {
+                            <label class="poll-option">
+                                <input class="poll-choice-input poll-check" type="checkbox" name="optionIds" value="@option.Id" />
+                                <span class="poll-choice-box"></span>
+                                <span class="poll-option-text">@option.OptionDescription</span>
+                            </label>
+                        }
                     }
                 </div>
                 break;
@@ -243,6 +274,19 @@
 
 <script>
     const pollKind = "@poll.Kind";
+
+    // "Other" write-in: only require the text box while its option is selected.
+    (function () {
+        const writeIn = document.querySelector(".poll-writein");
+        const toggle = document.querySelector(".poll-other-toggle");
+        if (!writeIn || !toggle) return;
+        function sync() {
+            writeIn.required = toggle.checked;
+            if (toggle.checked) writeIn.focus();
+        }
+        document.querySelectorAll('input[name="optionIds"]').forEach(el => el.addEventListener("change", sync));
+        sync();
+    })();
 
     // Multi-select: enforce the optional maximum.
     @if (poll is MultiSelectPoll ms && ms.MaxSelections.HasValue)

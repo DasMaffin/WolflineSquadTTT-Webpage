@@ -14,7 +14,7 @@ namespace WolflineSquadTTT.Services
         Task DeletePollByIdAsync(int pollId);
         Task<bool> HasUserAnsweredAsync(int pollId, int userId);
         Task<HashSet<int>> GetAnsweredPollIdsAsync(int userId);
-        Task SubmitAnswerAsync(int pollId, int userId, List<int> optionIds);
+        Task SubmitAnswerAsync(int pollId, int userId, List<int> optionIds, string? writeInText);
         Task<PollResultsViewModel?> GetResultsAsync(int pollId);
         Task<PollResponsesViewModel?> GetIndividualResponsesAsync(int pollId);
     }
@@ -115,7 +115,7 @@ namespace WolflineSquadTTT.Services
             return ids.ToHashSet();
         }
 
-        public async Task SubmitAnswerAsync(int pollId, int userId, List<int> optionIds)
+        public async Task SubmitAnswerAsync(int pollId, int userId, List<int> optionIds, string? writeInText)
         {
             Poll? poll = await GetPollWithOptionsAsync(pollId);
             if (poll == null)
@@ -135,15 +135,24 @@ namespace WolflineSquadTTT.Services
 
             ValidateSelection(poll, chosen);
 
+            // If the voter picked the "Other" option, they must supply text for it.
+            PollOption? writeInOption = poll.Options.FirstOrDefault(o => o.IsUserInput);
+            bool otherChosen = writeInOption != null && chosen.Contains(writeInOption.Id);
+            string? trimmedText = writeInText?.Trim();
+            if (otherChosen && string.IsNullOrEmpty(trimmedText))
+                throw new InvalidOperationException("Please type your answer for the \"Other\" option.");
+
             bool ranked = poll.Kind == PollType.Ranking;
 
             for (int i = 0; i < chosen.Count; i++)
             {
+                bool isWriteIn = writeInOption != null && chosen[i] == writeInOption.Id;
                 await _db.UserPollOptionVote.AddAsync(new UserPollOptionVote
                 {
                     PollOptionFK = chosen[i],
                     UserFK = userId,
-                    Placement = ranked ? i + 1 : null
+                    Placement = ranked ? i + 1 : null,
+                    WriteInText = isWriteIn ? trimmedText : null
                 });
             }
 
@@ -218,7 +227,13 @@ namespace WolflineSquadTTT.Services
                     {
                         OptionDescription = o.OptionDescription,
                         VoteCount = votes.Count(v => v.PollOptionFK == o.Id),
-                        AveragePlacement = ranked && placements.Count > 0 ? placements.Average() : null
+                        AveragePlacement = ranked && placements.Count > 0 ? placements.Average() : null,
+                        IsUserInput = o.IsUserInput,
+                        WriteIns = o.IsUserInput
+                            ? votes.Where(v => v.PollOptionFK == o.Id && !string.IsNullOrWhiteSpace(v.WriteInText))
+                                   .Select(v => v.WriteInText!)
+                                   .ToList()
+                            : new List<string>()
                     };
                 })
                 .ToList();
@@ -253,7 +268,9 @@ namespace WolflineSquadTTT.Services
                         ? g.OrderBy(v => v.Placement ?? int.MaxValue)
                            .Select(v => $"{v.Placement}. {v.PollOption.OptionDescription}")
                            .ToList()
-                        : g.Select(v => v.PollOption.OptionDescription).ToList()
+                        : g.Select(v => v.PollOption.IsUserInput && !string.IsNullOrWhiteSpace(v.WriteInText)
+                               ? $"{v.PollOption.OptionDescription}: {v.WriteInText}"
+                               : v.PollOption.OptionDescription).ToList()
                 })
                 .OrderBy(r => r.SteamId)
                 .ToList();

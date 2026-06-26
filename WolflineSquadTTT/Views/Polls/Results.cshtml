@@ -39,6 +39,20 @@
         </tbody>
     </table>
 
+    @{
+        OptionResult? writeIn = Model.Results.FirstOrDefault(r => r.IsUserInput);
+    }
+    @if (writeIn != null && writeIn.WriteIns.Any())
+    {
+        <h5 class="mt-4">“Other” answers (@writeIn.WriteIns.Count)</h5>
+        <ul class="list-group mb-3">
+            @foreach (string text in writeIn.WriteIns)
+            {
+                <li class="list-group-item bg-transparent">@text</li>
+            }
+        </ul>
+    }
+
     <a class="btn btn-secondary" asp-action="Index">Back to polls</a>
     @if (PermissionHelper.HasPermission(session, Permission.ViewIndividualResponses))
     {

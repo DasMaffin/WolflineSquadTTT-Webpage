@@ -26,6 +26,12 @@ namespace WolflineSquadTTT.Models
         /// Average placement for ranking polls (lower = more liked). Null otherwise.
         /// </summary>
         public double? AveragePlacement { get; set; }
+
+        /// <summary>True for the "Other" write-in option.</summary>
+        public bool IsUserInput { get; set; }
+
+        /// <summary>The free-text answers submitted via the "Other" option (only when IsUserInput).</summary>
+        public List<string> WriteIns { get; set; } = new();
     }
 
     public class PollResponsesViewModel

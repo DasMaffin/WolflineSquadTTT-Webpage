@@ -27,6 +27,9 @@ namespace WolflineSquadTTT.Models
         // Only relevant for MultiSelect polls. Null = unlimited.
         public int? MaxSelections { get; set; }
 
+        // Basic / MultiSelect only: add an "Other" option with a free-text box.
+        public bool AllowUserInput { get; set; }
+
         public List<string> Options { get; set; } = new();
     }
 
