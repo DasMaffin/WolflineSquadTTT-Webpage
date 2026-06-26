@@ -33,6 +33,14 @@ are made; check items off once they're live. Most recent first.
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
+- In-game external links (2026-06-26): for **GMod-authenticated** sessions only (`Session["AuthType"]=="Gmod"`),
+  `_Layout` loads `wwwroot/js/gmod-bridge.js`, which intercepts clicks on **external** links (different host —
+  Discord, Tebex shop, Steam Workshop, …) and hands them to a Lua bridge `wlsq.openURL(url)` so they open via
+  `gui.OpenURL` (Steam overlay or the player's default browser) instead of trying to navigate the in-game DHTML
+  panel. Internal links are untouched; normal web users never load the script (zero impact). **Webserver side
+  only** — needs the GMod client to expose the bridge: `panel:AddFunction("wlsq","openURL",function(url) gui.OpenURL(url) end)`
+  (documented in `GMOD_AUTH.md` → "External links"). If the bridge isn't deployed, links fall back to default
+  behaviour (no breakage). Code-only, no migration.
 - Market buy error reporting (2026-06-26): `MarketService.ExecuteSaleAsync` now returns a 3-way `SaleOutcome`
   (`Ok` / `InsufficientFunds` / `Error`) instead of a bare bool, so a buy only reports **"You don't have enough
   points"** when the buyer genuinely can't pay (the `ps2_wallet` debit affects 0 rows). Any other failure (null

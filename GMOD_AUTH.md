@@ -127,6 +127,40 @@ So you do **not** intercept navigation or re-authenticate per link — just open
 token and let normal cookies carry the session. You'd only mint another token if that cookie is gone
 (player cleared it, or it expired after 30 days).
 
+## External links (Discord, Tebex, Workshop) — the `wlsq.openURL` bridge
+
+*Internal* links work fine in-panel (cookies carry the session). But **external** links can't: a new
+tab is impossible, and navigating in-place would replace the site with a third-party page the player
+isn't logged into. So the website needs a way to push those out to a real browser.
+
+The site already handles this **automatically when the session is GMod-authenticated** — it loads
+`wwwroot/js/gmod-bridge.js`, which intercepts clicks on external links and calls a Lua function the
+client must expose on the DHTML panel:
+
+```lua
+local browser = vgui.Create("DHTML", frame)
+browser:Dock(FILL)
+
+-- Expose wlsq.openURL(url) to the page's JavaScript. gui.OpenURL opens the Steam overlay
+-- browser if the overlay is enabled, otherwise the player's default OS browser.
+browser:AddFunction("wlsq", "openURL", function(url)
+    if isstring(url) and (url:StartWith("http://") or url:StartWith("https://")) then
+        gui.OpenURL(url)
+    end
+end)
+
+browser:OpenURL(("https://mwlp.dasmaffin.com/auth/gmod?token=%s&returnUrl=%s"):format(token, returnUrl))
+```
+
+Notes:
+- If the bridge isn't present (this Lua not deployed), the site falls back to default link behaviour —
+  nothing breaks, external links just won't open out.
+- `gui.OpenURL` decides overlay-vs-default-browser based on the player's Steam overlay setting; there's
+  no Lua API to force one over the other.
+- Validate the `url` is `http(s)` (as above) — the page is trusted (it's our own site), but it's cheap
+  insurance against opening anything unexpected.
+- Only external links (different host than the site) are routed out; internal ones navigate in-panel.
+
 ## Security notes
 
 - **The API key never leaves the server.** Clients only ever receive the one-time, ~60-second token.
