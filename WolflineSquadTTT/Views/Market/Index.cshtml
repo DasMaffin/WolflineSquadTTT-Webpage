@@ -1,6 +1,9 @@
 @model MarketIndexViewModel
 @{
     ViewData["Title"] = "Market";
+
+    // Send guests back to the market after the Steam round-trip instead of dropping them on the home page.
+    string loginUrl = "/auth/steam?returnUrl=" + Uri.EscapeDataString($"{Context.Request.Path}{Context.Request.QueryString}");
 }
 
 <div class="poll-panel my-4 ps-inventory">
@@ -26,7 +29,7 @@
             }
             else
             {
-                <a class="btn btn-outline-light btn-sm" href="/auth/steam">Log in to trade</a>
+                <a class="btn btn-outline-light btn-sm" href="@loginUrl">Log in to trade</a>
             }
         </div>
     </div>
@@ -59,7 +62,7 @@
     }
     else
     {
-        <p class="text-muted">You're browsing as a guest. <a href="/auth/steam">Log in with Steam</a> to buy, sell, or bid.</p>
+        <p class="text-muted">You're browsing as a guest. <a href="@loginUrl">Log in with Steam</a> to buy, sell, or bid.</p>
     }
 
     @if (!Model.Listings.Any())
@@ -105,7 +108,7 @@
                         <div class="card-footer">
                             @if (!Model.IsLoggedIn)
                             {
-                                <a href="/auth/steam" class="btn btn-outline-light btn-sm">Log in to @(listing.IsAuction ? "bid" : "buy")</a>
+                                <a href="@loginUrl" class="btn btn-outline-light btn-sm">Log in to @(listing.IsAuction ? "bid" : "buy")</a>
                             }
                             else if (listing.IsOwn)
                             {

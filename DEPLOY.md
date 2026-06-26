@@ -33,6 +33,10 @@ are made; check items off once they're live. Most recent first.
 
 ## Code (needs app redeploy + restart)
 All in the current build; the running instance must be restarted/redeployed:
+- Market guest login returns to market (2026-06-26): the market's three guest "Log in" links (topbar, intro,
+  per-listing) pointed at bare `/auth/steam`, so login dropped the user on the home page. They now pass
+  `?returnUrl=<current path>` (threaded through the Steam OpenID round-trip, local-URL-guarded) so the user
+  lands back on the market. Code-only, no migration.
 - Currency not sellable (2026-06-26): currency/loot-bundle tiles (`BaseClass=="currency"`) have no
   `ps2_itempersistence` row, so the market's `ItemForSaleSql` (INNER JOIN persistence) always rejected them
   as `InvalidItem` — but the inventory still offered "Sell on market" for them. Added `PointShopItem.Sellable`
